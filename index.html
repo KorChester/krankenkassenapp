@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MusterKasse – Ihre Online-Geschäftsstelle</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-900: #0A1F3D;
+    --brand-800: #0B2A56;
+    --brand-700: #0E3A75;
+    --brand-600: #124A96;
+    --brand-500: #1B5FB5;
+    --brand-100: #E8EFF9;
+    --brand-50:  #F4F7FC;
+
+    --sage-600: #3F7D5A;
+    --sage-500: #4F9A6E;
+    --sage-100: #E6F2EB;
+
+    --amber-600: #B4770E;
+    --amber-100: #FCF1DC;
+
+    --rose-600:  #B84454;
+    --rose-100:  #FBE8EA;
+
+    --ink-900: #0C1521;
+    --ink-700: #2C3848;
+    --ink-500: #5A6879;
+    --ink-400: #8B96A5;
+    --ink-300: #C2CAD4;
+    --ink-200: #E4E8EE;
+    --ink-100: #F1F3F7;
+    --ink-50:  #F8FAFC;
+  }
+
+  * { -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #dfe8f5 0%, transparent 60%),
+      radial-gradient(900px 500px at 110% 110%, #e3eadf 0%, transparent 60%),
+      #eef1f6;
+    color: var(--ink-900);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .serif { font-family: 'Instrument Serif', ui-serif, Georgia, serif; letter-spacing: -0.01em; }
+
+  /* ---------- Phone shell ---------- */
+  .phone-shell {
+    width: 100%;
+    max-width: 420px;
+    height: min(900px, 94vh);
+    background: #fff;
+    border-radius: 44px;
+    box-shadow:
+      0 40px 80px -20px rgba(12, 21, 33, 0.35),
+      0 12px 32px -8px rgba(12, 21, 33, 0.18),
+      0 0 0 10px #0C1521,
+      0 0 0 11px #1a2636;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phone-notch {
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    width: 110px; height: 28px;
+    background: #0C1521;
+    border-radius: 20px;
+    z-index: 60;
+  }
+
+  /* status bar */
+  .status-bar {
+    flex: 0 0 auto;
+    height: 44px;
+    padding: 0 28px 0 28px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    font-size: 13px; font-weight: 600;
+    color: var(--ink-900);
+    padding-bottom: 6px;
+    background: transparent;
+  }
+
+  /* app header */
+  .app-header {
+    flex: 0 0 auto;
+    padding: 10px 20px 14px 20px;
+    background: #fff;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* content scrollable */
+  .app-content {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--ink-50);
+    scrollbar-width: thin;
+    scroll-behavior: smooth;
+  }
+  .app-content::-webkit-scrollbar { width: 0px; }
+
+  /* bottom tab bar */
+  .tab-bar {
+    flex: 0 0 auto;
+    height: 76px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: saturate(150%) blur(14px);
+    -webkit-backdrop-filter: saturate(150%) blur(14px);
+    border-top: 1px solid var(--ink-200);
+    padding: 8px 4px 18px 4px;
+    position: relative;
+    z-index: 20;
+  }
+  .tab-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px;
+    font-size: 10.5px; font-weight: 500;
+    color: var(--ink-400);
+    transition: color .18s ease, transform .18s ease;
+    position: relative;
+  }
+  .tab-btn:active { transform: scale(0.94); }
+  .tab-btn.active { color: var(--brand-700); }
+  .tab-btn.active::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    width: 24px; height: 3px;
+    border-radius: 99px;
+    background: var(--brand-600);
+  }
+  .tab-btn .badge {
+    position: absolute; top: -2px; right: calc(50% - 18px);
+    min-width: 16px; height: 16px; padding: 0 4px;
+    background: var(--rose-600); color: #fff;
+    border-radius: 99px; font-size: 9.5px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #fff;
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(12,21,33,.04), 0 4px 14px -6px rgba(12,21,33,.08);
+    border: 1px solid rgba(12,21,33,0.04);
+  }
+  .card-flat { background: #fff; border-radius: 14px; border: 1px solid var(--ink-200); }
+
+  /* eGK card */
+  .egk {
+    position: relative;
+    border-radius: 20px;
+    padding: 22px 22px 20px 22px;
+    color: #fff;
+    overflow: hidden;
+    background:
+      radial-gradient(140% 120% at 0% 0%, #1B5FB5 0%, #0E3A75 40%, #0A1F3D 100%);
+    box-shadow: 0 20px 40px -18px rgba(10, 31, 61, 0.55), 0 4px 10px -4px rgba(10,31,61,.25);
+  }
+  .egk::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(500px 200px at 110% -20%, rgba(255,255,255,.18), transparent 50%),
+      radial-gradient(300px 150px at -10% 120%, rgba(79,154,110,.35), transparent 60%);
+    pointer-events: none;
+  }
+  .egk-chip {
+    width: 36px; height: 28px; border-radius: 5px;
+    background: linear-gradient(135deg, #D9C48C, #B69754 60%, #8E7336);
+    position: relative;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+  }
+  .egk-chip::before, .egk-chip::after {
+    content:""; position:absolute; background: rgba(0,0,0,.15);
+  }
+  .egk-chip::before { top:6px; left:3px; right:3px; height:1px; box-shadow: 0 5px 0 rgba(0,0,0,.15), 0 10px 0 rgba(0,0,0,.15); }
+  .egk-chip::after  { top:3px; bottom:3px; left:14px; width:1px; }
+
+  /* Quick action tile */
+  .quick {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px 12px 12px 12px;
+    border: 1px solid var(--ink-200);
+    display: flex; flex-direction: column; gap: 10px;
+    align-items: flex-start; justify-content: space-between;
+    min-height: 96px;
+    transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+    text-align: left;
+  }
+  .quick:active { transform: scale(0.97); }
+  .quick:hover { border-color: var(--brand-500); box-shadow: 0 6px 18px -8px rgba(18,74,150,.35); }
+  .quick .ico {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--brand-50);
+    color: var(--brand-700);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Status chips */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 99px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .chip-blue  { background: var(--brand-100); color: var(--brand-700); border-color: #CDDBF2; }
+  .chip-green { background: var(--sage-100); color: var(--sage-600); border-color: #CDE3D5; }
+  .chip-amber { background: var(--amber-100); color: var(--amber-600); border-color: #F0DDB4; }
+  .chip-rose  { background: var(--rose-100); color: var(--rose-600); border-color: #F2CDD1; }
+  .chip-gray  { background: var(--ink-100); color: var(--ink-700); border-color: var(--ink-200); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; font-weight: 600; font-size: 14px;
+    padding: 12px 16px; border-radius: 12px;
+    transition: transform .12s ease, background .2s ease, box-shadow .2s ease;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--brand-700); color: #fff;
+    box-shadow: 0 6px 16px -6px rgba(14,58,117,.55);
+  }
+  .btn-primary:hover { background: var(--brand-800); }
+  .btn-ghost { background: var(--ink-100); color: var(--ink-900); }
+  .btn-ghost:hover { background: var(--ink-200); }
+  .btn-outline { background: #fff; color: var(--brand-700); border: 1px solid var(--brand-500); }
+  .btn-outline:hover { background: var(--brand-50); }
+
+  /* Sections */
+  .section-title {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 4px 8px 4px;
+  }
+  .section-title h3 {
+    font-size: 14px; font-weight: 600; color: var(--ink-700);
+    letter-spacing: -0.01em;
+  }
+  .link { font-size: 13px; color: var(--brand-700); font-weight: 500; }
+  .link:hover { text-decoration: underline; }
+
+  /* List items */
+  .li-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--ink-100);
+  }
+  .li-row:last-child { border-bottom: none; }
+  .li-row .avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--brand-50); color: var(--brand-700);
+    font-weight: 600; font-size: 14px;
+    flex: 0 0 auto;
+  }
+
+  /* Toast */
+  .toast-wrap {
+    position: absolute;
+    top: 54px; left: 50%; transform: translateX(-50%);
+    z-index: 80;
+    display: flex; flex-direction: column; gap: 8px;
+    width: min(92%, 380px);
+    pointer-events: none;
+  }
+  .toast {
+    background: #0C1521; color: #fff;
+    padding: 11px 14px; border-radius: 12px;
+    font-size: 13.5px; font-weight: 500;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 12px 28px -10px rgba(0,0,0,.35);
+    animation: toast-in .28s ease-out;
+    pointer-events: auto;
+  }
+  .toast.success { background: var(--sage-600); }
+  .toast.info    { background: var(--brand-700); }
+  .toast.warn    { background: var(--amber-600); }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Modal / Sheet */
+  .sheet-backdrop {
+    position: absolute; inset: 0; z-index: 70;
+    background: rgba(12,21,33,.45);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: flex-end; justify-content: center;
+    animation: fade-in .2s ease;
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .sheet {
+    background: #fff;
+    width: 100%;
+    max-height: 86%;
+    border-radius: 22px 22px 0 0;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    animation: sheet-up .28s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes sheet-up {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .sheet-handle {
+    width: 44px; height: 4px; border-radius: 99px;
+    background: var(--ink-200);
+    margin: 10px auto 4px auto;
+  }
+
+  /* Inputs */
+  .inp {
+    width: 100%;
+    padding: 11px 13px;
+    background: var(--ink-50);
+    border: 1px solid var(--ink-200);
+    border-radius: 11px;
+    font-size: 14px;
+    color: var(--ink-900);
+    transition: border-color .18s ease, background .18s ease;
+  }
+  .inp:focus {
+    outline: none;
+    border-color: var(--brand-500);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(27,95,181,.12);
+  }
+  .lbl { font-size: 12.5px; font-weight: 500; color: var(--ink-700); margin-bottom: 6px; display: block; }
+
+  /* Timeline */
+  .tl { position: relative; padding-left: 22px; }
+  .tl::before {
+    content:""; position: absolute; left: 8px; top: 6px; bottom: 6px;
+    width: 2px; background: var(--ink-200);
+  }
+  .tl-item { position: relative; padding-bottom: 14px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-dot {
+    position: absolute; left: -18px; top: 3px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--ink-300);
+  }
+  .tl-item.done .tl-dot     { background: var(--sage-500); border-color: var(--sage-500); }
+  .tl-item.current .tl-dot  { background: var(--brand-600); border-color: var(--brand-600); box-shadow: 0 0 0 4px var(--brand-100); }
+
+  /* Animated view switch */
+  .view { animation: view-in .22s ease-out; }
+  @keyframes view-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Notifications dropdown */
+  .notif-pop {
+    position: absolute;
+    top: 100px; right: 16px; z-index: 65;
+    width: 300px; max-height: 360px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 16px 40px -10px rgba(12,21,33,.28), 0 0 0 1px var(--ink-200);
+    overflow: hidden;
+    animation: pop-in .18s ease-out;
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(-6px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .divider { height: 1px; background: var(--ink-100); }
+
+  .num-mask { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+
+  .chip-amber [data-lucide="loader-circle"],
+  .chip-amber svg.lucide-loader-circle {
+    animation: spin 1.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Mobile fallback: wenn wirklich klein, Rand weg */
+  @media (max-width: 480px) {
+    body { padding: 0 !important; background: #0C1521; }
+    .phone-shell {
+      max-width: 100%;
+      height: 100vh; /* Fallback */
+      height: 100dvh; /* berücksichtigt dynamische Browser-UI */
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .phone-notch { display: none; }
+  }
+</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-6">
+
+<main id="app" class="phone-shell">
+  <div class="phone-notch"></div>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span id="clock">09:41</span>
+    <div class="flex items-center gap-1.5">
+      <i data-lucide="signal" class="w-3.5 h-3.5"></i>
+      <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+      <span class="flex items-center gap-1">
+        <span class="text-[11px] font-semibold">87%</span>
+        <i data-lucide="battery-medium" class="w-4 h-4"></i>
+      </span>
+    </div>
+  </div>
+
+  <!-- App header -->
+  <header class="app-header">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="text-[11.5px] text-[var(--ink-500)] font-medium tracking-wide uppercase">Guten Tag</div>
+        <h1 class="serif text-[26px] leading-tight mt-0.5">Max <span class="italic text-[var(--brand-700)]">Mustermann</span></h1>
+      </div>
+      <button id="notifBtn" class="relative w-10 h-10 rounded-full bg-[var(--ink-100)] hover:bg-[var(--ink-200)] flex items-center justify-center transition-colors" aria-label="Benachrichtigungen">
+        <i data-lucide="bell" class="w-5 h-5 text-[var(--ink-700)]"></i>
+        <span id="notifBadge" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-[var(--rose-600)] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">3</span>
+      </button>
+    </div>
+    <div class="flex items-center gap-2 mt-3">
+      <div class="w-7 h-7 rounded-lg bg-[var(--brand-700)] flex items-center justify-center">
+        <i data-lucide="plus" class="w-4 h-4 text-white" style="stroke-width: 3"></i>
+      </div>
+      <div>
+        <div class="text-[13px] font-semibold text-[var(--ink-900)] leading-tight">MusterKasse</div>
+        <div class="text-[10.5px] text-[var(--ink-500)] leading-tight">Ihre Online-Geschäftsstelle</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toasts -->
+  <div class="toast-wrap" id="toasts"></div>
+
+  <!-- Notification dropdown (hidden) -->
+  <div id="notifPop" class="notif-pop hidden">
+    <div class="px-4 py-3 border-b border-[var(--ink-100)] flex items-center justify-between">
+      <div class="font-semibold text-[14px]">Benachrichtigungen</div>
+      <button id="closeNotif" class="text-[var(--ink-500)] hover:text-[var(--ink-900)]"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="overflow-y-auto" style="max-height: 300px;" id="notifList"></div>
+  </div>
+
+  <!-- Main views -->
+  <section class="app-content" id="content"></section>
+
+  <!-- Bottom tab bar -->
+  <nav class="tab-bar" role="tablist">
+    <button class="tab-btn active" data-tab="home"><i data-lucide="home" class="w-5 h-5"></i>Start</button>
+    <button class="tab-btn" data-tab="antraege"><i data-lucide="file-text" class="w-5 h-5"></i>Anträge</button>
+    <button class="tab-btn relative" data-tab="postfach">
+      <i data-lucide="mail" class="w-5 h-5"></i>Postfach
+      <span class="badge" id="postfachBadge">2</span>
+    </button>
+    <button class="tab-btn" data-tab="familie"><i data-lucide="users" class="w-5 h-5"></i>Familie</button>
+    <button class="tab-btn" data-tab="profil"><i data-lucide="user-round" class="w-5 h-5"></i>Profil</button>
+  </nav>
+
+  <!-- Sheet container -->
+  <div id="sheetHost"></div>
+</main>
+
+<script>
+/* =========================================================
+   MusterKasse – Prototyp State & Logic
+   ========================================================= */
+
+const state = {
+  activeTab: 'home',
+  user: {
+    anrede: 'Herr',
+    vorname: 'Max',
+    nachname: 'Mustermann',
+    geburtsdatum: '14.03.1986',
+    versichertennummer: 'A123456789',
+    kassennummer: '108310400',
+    gueltigBis: '12/2029',
+    adresse: {
+      strasse: 'Lindenstraße 27',
+      plz: '45127',
+      ort: 'Essen'
+    },
+    email: 'max.mustermann@mail.de',
+    telefon: '+49 201 5543210',
+    iban: 'DE89 3704 0044 0532 0130 00',
+    twoFA: true,
+    sprache: 'Deutsch',
+    benachrichtigungen: true
+  },
+  familie: [
+    { id: 'f1', rolle: 'Stammversicherter', name: 'Max Mustermann', geburt: '14.03.1986', status: 'Pflichtversichert', avatar: 'MM' },
+    { id: 'f2', rolle: 'Ehepartnerin',       name: 'Julia Mustermann', geburt: '02.07.1988', status: 'Familienversichert', avatar: 'JM' },
+    { id: 'f3', rolle: 'Kind',               name: 'Lena Mustermann',  geburt: '19.09.2016', status: 'Familienversichert', avatar: 'LM' },
+    { id: 'f4', rolle: 'Kind',               name: 'Finn Mustermann',  geburt: '04.02.2020', status: 'Familienversichert', avatar: 'FM' }
+  ],
+  antraege: [
+    {
+      id: 'a1', typ: 'Kostenerstattung', betreff: 'Brille – Rechnung 04/2026',
+      datum: '18.04.2026', status: 'In Bearbeitung',
+      timeline: [
+        { t: '12.04.2026', text: 'Antrag eingegangen', done: true },
+        { t: '15.04.2026', text: 'Unterlagen geprüft',  done: true },
+        { t: '18.04.2026', text: 'In fachlicher Prüfung', current: true },
+        { t: '—',          text: 'Abschluss & Auszahlung' }
+      ]
+    },
+    {
+      id: 'a2', typ: 'Zahnreinigung-Zuschuss', betreff: 'PZR bei Dr. Weber',
+      datum: '02.04.2026', status: 'Erledigt',
+      timeline: [
+        { t: '28.03.2026', text: 'Antrag eingegangen', done: true },
+        { t: '30.03.2026', text: 'Geprüft & bewilligt', done: true },
+        { t: '02.04.2026', text: 'Zuschuss überwiesen (80 €)', done: true }
+      ]
+    },
+    {
+      id: 'a3', typ: 'Haushaltshilfe', betreff: 'Haushaltshilfe nach OP',
+      datum: '22.04.2026', status: 'Eingegangen',
+      timeline: [
+        { t: '22.04.2026', text: 'Antrag eingegangen', current: true },
+        { t: '—',          text: 'Unterlagen werden geprüft' },
+        { t: '—',          text: 'Entscheidung & Rückmeldung' }
+      ]
+    }
+  ],
+  postfach: [
+    {
+      id: 'n1', betreff: 'Bonuszahlung bestätigt',
+      absender: 'MusterKasse · Bonusprogramm',
+      datum: '21.04.2026', gelesen: false, wichtig: true,
+      text: 'Sehr geehrter Herr Mustermann,\n\nwir freuen uns, Ihnen mitteilen zu können, dass Ihre Bonuszahlung in Höhe von 75,00 € heute auf Ihr hinterlegtes Konto überwiesen wurde.\n\nMit freundlichen Grüßen\nIhre MusterKasse',
+      anhang: 'Bonusbescheid_2026.pdf'
+    },
+    {
+      id: 'n2', betreff: 'Ihr Antrag auf Kostenerstattung – Rückfrage',
+      absender: 'MusterKasse · Sachbearbeitung',
+      datum: '19.04.2026', gelesen: false, wichtig: false,
+      text: 'Sehr geehrter Herr Mustermann,\n\nzu Ihrem Antrag auf Kostenerstattung vom 12.04.2026 benötigen wir noch eine Kopie der Verordnung. Bitte reichen Sie diese über die App ein.\n\nIhre MusterKasse',
+      anhang: null
+    },
+    {
+      id: 'n3', betreff: 'Mitgliedsbescheinigung verfügbar',
+      absender: 'MusterKasse · Mitgliederservice',
+      datum: '10.04.2026', gelesen: true, wichtig: false,
+      text: 'Ihre angeforderte Mitgliedsbescheinigung liegt als PDF im Anhang bereit.',
+      anhang: 'Mitgliedsbescheinigung_2026.pdf'
+    },
+    {
+      id: 'n4', betreff: 'Neuer Bonusheft-Eintrag',
+      absender: 'MusterKasse · Bonusprogramm',
+      datum: '28.03.2026', gelesen: true, wichtig: false,
+      text: 'Ihr Vorsorgetermin wurde erfolgreich im Bonusheft eingetragen.',
+      anhang: null
+    }
+  ],
+  notifications: [
+    { id: 'x1', titel: 'Rückfrage zu Ihrem Antrag', sub: 'Postfach · vor 2 Tagen', ico: 'mail' },
+    { id: 'x2', titel: 'Bonuszahlung 75,00 € überwiesen', sub: 'Konto · vor 1 Tag', ico: 'piggy-bank' },
+    { id: 'x3', titel: 'Vorsorgetermin in 14 Tagen fällig', sub: 'Gesundheit · heute', ico: 'calendar-check' }
+  ],
+  vorsorge: {
+    naechster: 'Gesundheits-Check-Up (alle 3 Jahre)',
+    faellig: '07.05.2026'
+  },
+  ui: {
+    antragFilter: 'alle',   // alle | offen | erledigt
+    postFilter: 'alle',     // alle | ungelesen | wichtig
+    ibanSichtbar: false,
+    versNrSichtbar: false,
+    notifOffen: false
+  }
+};
+
+/* ---------- Utility ---------- */
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+function escapeHTML(str='') {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function statusChip(status) {
+  const map = {
+    'Eingegangen':    'chip-blue',
+    'In Bearbeitung': 'chip-amber',
+    'Erledigt':       'chip-green',
+    'Abgelehnt':      'chip-rose'
+  };
+  const icon = {
+    'Eingegangen':    'inbox',
+    'In Bearbeitung': 'loader-circle',
+    'Erledigt':       'circle-check',
+    'Abgelehnt':      'circle-x'
+  }[status] || 'circle';
+  return `<span class="chip ${map[status]||'chip-gray'}"><i data-lucide="${icon}" class="w-3 h-3"></i>${status}</span>`;
+}
+
+function toast(msg, type='success') {
+  const host = $('#toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const ico = type === 'success' ? 'circle-check'
+            : type === 'warn'    ? 'triangle-alert'
+            : 'info';
+  el.innerHTML = `<i data-lucide="${ico}" class="w-4 h-4"></i><span>${escapeHTML(msg)}</span>`;
+  host.appendChild(el);
+  lucide.createIcons();
+  setTimeout(()=> {
+    el.style.transition = 'opacity .25s, transform .25s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-6px)';
+    setTimeout(()=> el.remove(), 260);
+  }, 2400);
+}
+
+function updateBadges() {
+  const ungelesen = state.postfach.filter(n => !n.gelesen).length;
+  const badge = $('#postfachBadge');
+  if (ungelesen > 0) {
+    badge.textContent = ungelesen;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+  const notifBadge = $('#notifBadge');
+  if (state.notifications.length > 0) {
+    notifBadge.textContent = state.notifications.length;
+    notifBadge.style.display = '';
+  } else {
+    notifBadge.style.display = 'none';
+  }
+}
+
+/* ---------- Sheet (Modal) ---------- */
+function openSheet(contentHTML, options={}) {
+  const host = $('#sheetHost');
+  host.innerHTML = `
+    <div class="sheet-backdrop" id="sheetBackdrop">
+      <div class="sheet" role="dialog" aria-modal="true">
+        <div class="sheet-handle"></div>
+        ${contentHTML}
+      </div>
+    </div>`;
+  lucide.createIcons();
+  $('#sheetBackdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'sheetBackdrop') closeSheet();
+  });
+  if (options.onOpen) options.onOpen();
+}
+function closeSheet() { $('#sheetHost').innerHTML = ''; }
+
+/* =========================================================
+   VIEWS
+   ========================================================= */
+
+function renderHome() {
+  const u = state.user;
+  const offen = state.antraege.filter(a => a.status !== 'Erledigt').slice(0,2);
+  const nachrichten = state.postfach.slice(0,2);
+
+  return `
+  <div class="view px-4 pt-4 pb-6 space-y-5">
+
+    <!-- eGK -->
+    <div class="egk">
+      <div class="relative flex items-start justify-between">
+        <div>
+          <div class="text-[10.5px] uppercase tracking-wider opacity-80">Elektronische Gesundheitskarte</div>
+          <div class="serif text-[20px] leading-tight mt-1">${escapeHTML(u.vorname)} ${escapeHTML(u.nachname)}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-[10px] uppercase tracking-wider opacity-70">MusterKasse</div>
+          <div class="text-[11px] font-semibold num-mask mt-0.5">Kasse ${u.kassennummer}</div>
+        </div>
+      </div>
+      <div class="relative mt-6 flex items-end justify-between">
+        <div class="egk-chip"></div>
+        <div class="text-right">
+          <div class="text-[10px] uppercase tracking-wider opacity-70">Gültig bis</div>
+          <div class="text-[13px] font-semibold num-mask">${u.gueltigBis}</div>
+        </div>
+      </div>
+      <div class="relative mt-4 flex items-end justify-between">
+        <div>
+          <div class="text-[10px] uppercase tracking-wider opacity-70">Versichertennr.</div>
+          <div class="text-[15px] font-semibold num-mask tracking-widest">${u.versichertennummer}</div>
+        </div>
+        <button onclick="toast('Karte in Wallet gespeichert','info')" class="text-[11px] font-semibold bg-white/15 hover:bg-white/25 transition rounded-full px-3 py-1.5 flex items-center gap-1.5">
+          <i data-lucide="wallet" class="w-3.5 h-3.5"></i> Wallet
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div>
+      <div class="section-title"><h3>Schnellzugriff</h3></div>
+      <div class="grid grid-cols-2 gap-2.5">
+        <button class="quick" onclick="openAUUploadModal()">
+          <div class="ico"><i data-lucide="file-up" class="w-4 h-4"></i></div>
+          <div>
+            <div class="text-[13.5px] font-semibold leading-tight">AU hochladen</div>
+            <div class="text-[11px] text-[var(--ink-500)] mt-0.5">Krankschreibung einreichen</div>
+          </div>
+        </button>
+        <button class="quick" onclick="toast('Mitgliedsbescheinigung angefordert','success'); addMockBescheinigung()">
+          <div class="ico" style="background: var(--sage-100); color: var(--sage-600)"><i data-lucide="file-check-2" class="w-4 h-4"></i></div>
+          <div>
+            <div class="text-[13.5px] font-semibold leading-tight">Bescheinigung</div>
+            <div class="text-[11px] text-[var(--ink-500)] mt-0.5">Mitglieds­nachweis anfordern</div>
+          </div>
+        </button>
+        <button class="quick" onclick="switchTab('profil'); setTimeout(openAdresseModal, 260)">
+          <div class="ico" style="background: var(--amber-100); color: var(--amber-600)"><i data-lucide="map-pin-house" class="w-4 h-4"></i></div>
+          <div>
+            <div class="text-[13.5px] font-semibold leading-tight">Kontakt ändern</div>
+            <div class="text-[11px] text-[var(--ink-500)] mt-0.5">Adresse & Telefon</div>
+          </div>
+        </button>
+        <button class="quick" onclick="openBonusheft()">
+          <div class="ico" style="background: #FBEAF1; color: #B43A6B"><i data-lucide="award" class="w-4 h-4"></i></div>
+          <div>
+            <div class="text-[13.5px] font-semibold leading-tight">Bonusheft</div>
+            <div class="text-[11px] text-[var(--ink-500)] mt-0.5">Aktuell 340 Punkte</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Aktuelle Anträge -->
+    <div>
+      <div class="section-title">
+        <h3>Aktuelle Anträge</h3>
+        <button class="link" onclick="switchTab('antraege')">Alle ansehen</button>
+      </div>
+      <div class="card overflow-hidden">
+        ${offen.length === 0
+          ? `<div class="p-5 text-center text-sm text-[var(--ink-500)]">Keine offenen Anträge.</div>`
+          : offen.map(a => `
+            <button class="li-row w-full text-left hover:bg-[var(--ink-50)] transition" onclick="openAntragDetail('${a.id}')">
+              <div class="avatar" style="background: var(--brand-50)"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[14px] font-semibold truncate">${escapeHTML(a.typ)}</div>
+                <div class="text-[12px] text-[var(--ink-500)] truncate">${escapeHTML(a.betreff)} · ${a.datum}</div>
+              </div>
+              ${statusChip(a.status)}
+            </button>`).join('')
+        }
+      </div>
+    </div>
+
+    <!-- Ungelesene Nachrichten -->
+    <div>
+      <div class="section-title">
+        <h3>Ungelesene Nachrichten</h3>
+        <button class="link" onclick="switchTab('postfach')">Zum Postfach</button>
+      </div>
+      <div class="card overflow-hidden">
+        ${nachrichten.filter(n=>!n.gelesen).length === 0
+          ? `<div class="p-5 text-center text-sm text-[var(--ink-500)]">Ihr Postfach ist auf dem neuesten Stand.</div>`
+          : nachrichten.filter(n=>!n.gelesen).map(n => `
+            <button class="li-row w-full text-left hover:bg-[var(--ink-50)] transition" onclick="openNachricht('${n.id}')">
+              <div class="avatar"><i data-lucide="mail" class="w-5 h-5"></i></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[14px] font-semibold truncate">${escapeHTML(n.betreff)}</div>
+                <div class="text-[12px] text-[var(--ink-500)] truncate">${escapeHTML(n.absender)} · ${n.datum}</div>
+              </div>
+              <span class="w-2 h-2 rounded-full bg-[var(--brand-600)]"></span>
+            </button>`).join('')
+        }
+      </div>
+    </div>
+
+    <!-- Vorsorge -->
+    <div>
+      <div class="section-title"><h3>Gesundheit & Vorsorge</h3></div>
+      <div class="card p-4 flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-[var(--sage-100)] text-[var(--sage-600)] flex items-center justify-center">
+          <i data-lucide="stethoscope" class="w-5 h-5"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-[13.5px] font-semibold leading-tight">${escapeHTML(state.vorsorge.naechster)}</div>
+          <div class="text-[11.5px] text-[var(--ink-500)] mt-0.5">Fällig am <span class="num-mask">${state.vorsorge.faellig}</span></div>
+        </div>
+        <button class="btn btn-outline !py-2 !px-3 !text-[12px]" onclick="toast('Termin­erinnerung gesetzt','success')">
+          <i data-lucide="bell-plus" class="w-4 h-4"></i> Erinnern
+        </button>
+      </div>
+    </div>
+
+    <div class="h-4"></div>
+  </div>`;
+}
+
+function renderAntraege() {
+  const f = state.ui.antragFilter;
+  let list = state.antraege.slice();
+  if (f === 'offen')    list = list.filter(a => a.status !== 'Erledigt');
+  if (f === 'erledigt') list = list.filter(a => a.status === 'Erledigt');
+
+  const chip = (id, label) => `
+    <button onclick="setAntragFilter('${id}')"
+      class="chip ${f===id ? 'chip-blue' : 'chip-gray'} cursor-pointer"
+      style="padding: 6px 12px; font-size: 12px;">
+      ${label}
+    </button>`;
+
+  return `
+  <div class="view px-4 pt-4 pb-6 space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="serif text-[22px]">Meine Anträge</h2>
+      <span class="text-[12px] text-[var(--ink-500)]">${state.antraege.length} gesamt</span>
+    </div>
+
+    <div class="flex gap-2">
+      ${chip('alle','Alle')}
+      ${chip('offen','Offen')}
+      ${chip('erledigt','Erledigt')}
+    </div>
+
+    <button class="btn btn-primary w-full" onclick="openNeuerAntragModal()">
+      <i data-lucide="plus" class="w-4 h-4"></i> Neuen Antrag stellen
+    </button>
+
+    <div class="card overflow-hidden">
+      ${list.length === 0
+        ? `<div class="p-8 text-center">
+            <i data-lucide="inbox" class="w-8 h-8 mx-auto text-[var(--ink-300)]"></i>
+            <div class="mt-2 text-[13px] text-[var(--ink-500)]">Keine Anträge in dieser Ansicht.</div>
+          </div>`
+        : list.map(a => `
+          <button class="li-row w-full text-left hover:bg-[var(--ink-50)] transition" onclick="openAntragDetail('${a.id}')">
+            <div class="avatar"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[14px] font-semibold truncate">${escapeHTML(a.typ)}</div>
+              <div class="text-[12px] text-[var(--ink-500)] truncate">${escapeHTML(a.betreff)} · ${a.datum}</div>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              ${statusChip(a.status)}
+              <i data-lucide="chevron-right" class="w-4 h-4 text-[var(--ink-400)]"></i>
+            </div>
+          </button>`).join('')
+      }
+    </div>
+  </div>`;
+}
+
+function renderPostfach() {
+  const f = state.ui.postFilter;
+  let list = state.postfach.slice();
+  if (f === 'ungelesen') list = list.filter(n => !n.gelesen);
+  if (f === 'wichtig')   list = list.filter(n => n.wichtig);
+
+  const chip = (id, label) => `
+    <button onclick="setPostFilter('${id}')"
+      class="chip ${f===id ? 'chip-blue' : 'chip-gray'} cursor-pointer"
+      style="padding: 6px 12px; font-size: 12px;">${label}</button>`;
+
+  return `
+  <div class="view px-4 pt-4 pb-6 space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="serif text-[22px]">Postfach</h2>
+      <span class="text-[12px] text-[var(--ink-500)]">${state.postfach.filter(n=>!n.gelesen).length} ungelesen</span>
+    </div>
+
+    <div class="flex gap-2">
+      ${chip('alle','Alle')}
+      ${chip('ungelesen','Ungelesen')}
+      ${chip('wichtig','Wichtig')}
+    </div>
+
+    <div class="card overflow-hidden">
+      ${list.length === 0
+        ? `<div class="p-8 text-center">
+            <i data-lucide="mail-open" class="w-8 h-8 mx-auto text-[var(--ink-300)]"></i>
+            <div class="mt-2 text-[13px] text-[var(--ink-500)]">Keine Nachrichten in dieser Ansicht.</div>
+          </div>`
+        : list.map(n => `
+          <button class="li-row w-full text-left hover:bg-[var(--ink-50)] transition" onclick="openNachricht('${n.id}')">
+            <div class="avatar" style="${n.wichtig ? 'background: var(--rose-100); color: var(--rose-600);' : ''}">
+              <i data-lucide="${n.wichtig ? 'star' : 'mail'}" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[14px] ${n.gelesen ? 'font-medium text-[var(--ink-700)]' : 'font-semibold text-[var(--ink-900)]'} truncate">
+                ${escapeHTML(n.betreff)}
+              </div>
+              <div class="text-[12px] text-[var(--ink-500)] truncate">${escapeHTML(n.absender)} · ${n.datum}</div>
+            </div>
+            ${!n.gelesen ? '<span class="w-2 h-2 rounded-full bg-[var(--brand-600)]"></span>' : ''}
+          </button>`).join('')
+      }
+    </div>
+  </div>`;
+}
+
+function renderFamilie() {
+  return `
+  <div class="view px-4 pt-4 pb-6 space-y-4">
+    <div>
+      <h2 class="serif text-[22px]">Familie</h2>
+      <p class="text-[12.5px] text-[var(--ink-500)] mt-0.5">Stamm- und Familienversicherung verwalten.</p>
+    </div>
+
+    <div class="space-y-3">
+      ${state.familie.map(p => `
+        <div class="card p-4">
+          <div class="flex items-center gap-3">
+            <div class="avatar" style="width:44px;height:44px;${p.rolle==='Stammversicherter' ? 'background: var(--brand-700); color:#fff;' : ''}">
+              ${p.avatar}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <div class="text-[14.5px] font-semibold truncate">${escapeHTML(p.name)}</div>
+                ${p.rolle === 'Stammversicherter'
+                  ? '<span class="chip chip-blue" style="font-size:10px;padding:2px 7px">Sie</span>'
+                  : ''}
+              </div>
+              <div class="text-[12px] text-[var(--ink-500)]">${escapeHTML(p.rolle)} · geb. ${p.geburt}</div>
+              <div class="text-[11.5px] text-[var(--sage-600)] font-medium mt-0.5">${escapeHTML(p.status)}</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 mt-3">
+            <button class="btn btn-ghost !py-2 !text-[12.5px]" onclick="toast('AU für ${escapeHTML(p.name)} hochgeladen','success')">
+              <i data-lucide="file-up" class="w-4 h-4"></i> AU hochladen
+            </button>
+            <button class="btn btn-ghost !py-2 !text-[12.5px]" onclick="toast('Dokument hochgeladen','success')">
+              <i data-lucide="paperclip" class="w-4 h-4"></i> Dokument
+            </button>
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <button class="btn btn-outline w-full" onclick="openFamilieModal()">
+      <i data-lucide="user-plus" class="w-4 h-4"></i> Familienmitglied hinzufügen
+    </button>
+  </div>`;
+}
+
+function renderProfil() {
+  const u = state.user;
+  const versNr = state.ui.versNrSichtbar ? u.versichertennummer : u.versichertennummer.slice(0,2) + ' •••• ' + u.versichertennummer.slice(-2);
+  const iban   = state.ui.ibanSichtbar   ? u.iban : u.iban.slice(0,8) + ' •••• •••• •••• ' + u.iban.slice(-4);
+
+  const row = (ico, label, value, action='') => `
+    <div class="li-row">
+      <div class="avatar" style="background: var(--ink-100); color: var(--ink-700); width: 36px; height: 36px;">
+        <i data-lucide="${ico}" class="w-4 h-4"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[11.5px] text-[var(--ink-500)]">${escapeHTML(label)}</div>
+        <div class="text-[13.5px] font-medium text-[var(--ink-900)] truncate">${value}</div>
+      </div>
+      ${action}
+    </div>`;
+
+  return `
+  <div class="view px-4 pt-4 pb-6 space-y-5">
+    <div class="flex items-center gap-3">
+      <div class="w-14 h-14 rounded-full bg-[var(--brand-700)] text-white flex items-center justify-center text-[18px] font-semibold">MM</div>
+      <div>
+        <div class="serif text-[22px] leading-tight">${escapeHTML(u.vorname)} ${escapeHTML(u.nachname)}</div>
+        <div class="text-[12px] text-[var(--ink-500)]">Mitglied seit 2011</div>
+      </div>
+    </div>
+
+    <!-- Persönlich -->
+    <div>
+      <div class="section-title"><h3>Persönliche Daten</h3></div>
+      <div class="card overflow-hidden">
+        ${row('user','Name', escapeHTML(u.anrede+' '+u.vorname+' '+u.nachname))}
+        ${row('calendar','Geburtsdatum', `<span class="num-mask">${u.geburtsdatum}</span>`)}
+        ${row('id-card','Versichertennummer',
+          `<span class="num-mask">${versNr}</span>`,
+          `<button class="p-2 text-[var(--ink-500)] hover:text-[var(--brand-700)]" onclick="toggleVersNr()">
+            <i data-lucide="${state.ui.versNrSichtbar ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>
+          </button>`
+        )}
+      </div>
+    </div>
+
+    <!-- Adresse -->
+    <div>
+      <div class="section-title">
+        <h3>Anschrift</h3>
+        <button class="link" onclick="openAdresseModal()"><i data-lucide="pencil" class="w-3.5 h-3.5 inline-block mr-1"></i>Ändern</button>
+      </div>
+      <div class="card p-4">
+        <div class="text-[14px]">${escapeHTML(u.adresse.strasse)}<br>${escapeHTML(u.adresse.plz)} ${escapeHTML(u.adresse.ort)}</div>
+      </div>
+    </div>
+
+    <!-- Kontakt -->
+    <div>
+      <div class="section-title">
+        <h3>Kontaktdaten</h3>
+        <button class="link" onclick="openKontaktModal()"><i data-lucide="pencil" class="w-3.5 h-3.5 inline-block mr-1"></i>Ändern</button>
+      </div>
+      <div class="card overflow-hidden">
+        ${row('mail','E-Mail', escapeHTML(u.email))}
+        ${row('phone','Telefon', escapeHTML(u.telefon))}
+      </div>
+    </div>
+
+    <!-- Bank -->
+    <div>
+      <div class="section-title">
+        <h3>Bankverbindung</h3>
+        <button class="link" onclick="openBankModal()"><i data-lucide="pencil" class="w-3.5 h-3.5 inline-block mr-1"></i>Ändern</button>
+      </div>
+      <div class="card overflow-hidden">
+        ${row('landmark','IBAN',
+          `<span class="num-mask">${iban}</span>`,
+          `<button class="p-2 text-[var(--ink-500)] hover:text-[var(--brand-700)]" onclick="toggleIban()">
+            <i data-lucide="${state.ui.ibanSichtbar ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>
+          </button>`
+        )}
+      </div>
+    </div>
+
+    <!-- Sicherheit -->
+    <div>
+      <div class="section-title"><h3>Sicherheit</h3></div>
+      <div class="card overflow-hidden">
+        <div class="li-row">
+          <div class="avatar" style="background: var(--sage-100); color: var(--sage-600); width:36px; height:36px;">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+          </div>
+          <div class="flex-1">
+            <div class="text-[13.5px] font-medium">Zwei-Faktor-Authentifizierung</div>
+            <div class="text-[11.5px] text-[var(--ink-500)]">${u.twoFA ? 'Aktiviert' : 'Nicht aktiviert'}</div>
+          </div>
+          <button class="relative w-10 h-6 rounded-full transition ${u.twoFA ? 'bg-[var(--sage-500)]' : 'bg-[var(--ink-300)]'}" onclick="toggle2FA()">
+            <span class="absolute top-0.5 ${u.twoFA ? 'left-4' : 'left-0.5'} w-5 h-5 bg-white rounded-full shadow transition-all"></span>
+          </button>
+        </div>
+        <button class="li-row w-full text-left hover:bg-[var(--ink-50)]" onclick="toast('Funktion folgt','info')">
+          <div class="avatar" style="background: var(--ink-100); color: var(--ink-700); width:36px; height:36px;">
+            <i data-lucide="key-round" class="w-4 h-4"></i>
+          </div>
+          <div class="flex-1 text-[13.5px] font-medium">Passwort ändern</div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-[var(--ink-400)]"></i>
+        </button>
+        <button class="li-row w-full text-left hover:bg-[var(--ink-50)]" onclick="toast('Sie wurden abgemeldet (Demo)','warn')">
+          <div class="avatar" style="background: var(--rose-100); color: var(--rose-600); width:36px; height:36px;">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </div>
+          <div class="flex-1 text-[13.5px] font-medium text-[var(--rose-600)]">Abmelden</div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-[var(--ink-400)]"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- App -->
+    <div>
+      <div class="section-title"><h3>App</h3></div>
+      <div class="card overflow-hidden">
+        ${row('languages','Sprache', escapeHTML(u.sprache))}
+        <div class="li-row">
+          <div class="avatar" style="background: var(--ink-100); color: var(--ink-700); width:36px; height:36px;"><i data-lucide="bell" class="w-4 h-4"></i></div>
+          <div class="flex-1">
+            <div class="text-[13.5px] font-medium">Benachrichtigungen</div>
+            <div class="text-[11.5px] text-[var(--ink-500)]">Push-Nachrichten empfangen</div>
+          </div>
+          <button class="relative w-10 h-6 rounded-full transition ${u.benachrichtigungen ? 'bg-[var(--brand-600)]' : 'bg-[var(--ink-300)]'}" onclick="toggleNotifs()">
+            <span class="absolute top-0.5 ${u.benachrichtigungen ? 'left-4' : 'left-0.5'} w-5 h-5 bg-white rounded-full shadow transition-all"></span>
+          </button>
+        </div>
+        <button class="li-row w-full text-left hover:bg-[var(--ink-50)]" onclick="toast('Impressum öffnen …','info')">
+          <div class="avatar" style="background: var(--ink-100); color: var(--ink-700); width:36px; height:36px;"><i data-lucide="scroll-text" class="w-4 h-4"></i></div>
+          <div class="flex-1 text-[13.5px] font-medium">Impressum</div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-[var(--ink-400)]"></i>
+        </button>
+        <button class="li-row w-full text-left hover:bg-[var(--ink-50)]" onclick="toast('Datenschutz öffnen …','info')">
+          <div class="avatar" style="background: var(--ink-100); color: var(--ink-700); width:36px; height:36px;"><i data-lucide="lock" class="w-4 h-4"></i></div>
+          <div class="flex-1 text-[13.5px] font-medium">Datenschutz</div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-[var(--ink-400)]"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="text-center text-[11px] text-[var(--ink-400)] pt-2">
+      MusterKasse App · Version 4.2.1 · Prototyp
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   Modals
+   ========================================================= */
+
+function openAntragDetail(id) {
+  const a = state.antraege.find(x => x.id === id);
+  if (!a) return;
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Antrag</div>
+          <div class="serif text-[22px] leading-tight mt-0.5">${escapeHTML(a.typ)}</div>
+          <div class="text-[12.5px] text-[var(--ink-500)] mt-1">${escapeHTML(a.betreff)}</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2 text-[var(--ink-500)] hover:text-[var(--ink-900)]">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="mt-3 flex items-center gap-2">
+        ${statusChip(a.status)}
+        <span class="text-[12px] text-[var(--ink-500)]">Eingereicht: ${a.datum}</span>
+      </div>
+
+      <div class="divider my-4"></div>
+
+      <h3 class="text-[13px] font-semibold text-[var(--ink-700)] mb-3">Bearbeitungsverlauf</h3>
+      <div class="tl">
+        ${a.timeline.map(s => `
+          <div class="tl-item ${s.done?'done':''} ${s.current?'current':''}">
+            <div class="tl-dot"></div>
+            <div class="text-[13.5px] font-medium">${escapeHTML(s.text)}</div>
+            <div class="text-[11.5px] text-[var(--ink-500)] num-mask">${s.t}</div>
+          </div>`).join('')}
+      </div>
+
+      <div class="mt-5 grid grid-cols-2 gap-2">
+        <button class="btn btn-ghost" onclick="toast('Unterlagen nachgereicht','success')">
+          <i data-lucide="paperclip" class="w-4 h-4"></i> Unterlagen
+        </button>
+        <button class="btn btn-outline" onclick="toast('Chat mit Sachbearbeitung geöffnet','info')">
+          <i data-lucide="message-circle" class="w-4 h-4"></i> Nachfragen
+        </button>
+      </div>
+    </div>
+  `);
+}
+
+function openNeuerAntragModal() {
+  const typen = [
+    { id:'Kostenerstattung',         ico:'receipt',        sub:'Rechnungen einreichen' },
+    { id:'Zahnreinigung-Zuschuss',   ico:'sparkles',       sub:'Bis zu 80 € pro Jahr' },
+    { id:'Haushaltshilfe',           ico:'home',           sub:'Unterstützung nach OP oder Geburt' },
+    { id:'Krankengeld-Bescheinigung',ico:'file-signature', sub:'Ausfüllhilfe & Upload' },
+    { id:'Sonstiges',                ico:'file-plus',      sub:'Freier Antrag' }
+  ];
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Neuer Antrag</div>
+          <div class="serif text-[22px] leading-tight mt-0.5">Worum geht es?</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-2 mt-4">
+        ${typen.map(t => `
+          <button class="w-full flex items-center gap-3 p-3 rounded-xl border border-[var(--ink-200)] hover:border-[var(--brand-500)] hover:bg-[var(--brand-50)] transition text-left"
+                  onclick="openAntragFormular('${t.id}')">
+            <div class="w-10 h-10 rounded-lg bg-[var(--brand-50)] text-[var(--brand-700)] flex items-center justify-center">
+              <i data-lucide="${t.ico}" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[14px] font-semibold">${escapeHTML(t.id)}</div>
+              <div class="text-[11.5px] text-[var(--ink-500)]">${escapeHTML(t.sub)}</div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-[var(--ink-400)]"></i>
+          </button>`).join('')}
+      </div>
+    </div>
+  `);
+}
+
+function openAUUploadModal() {
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Schnellzugriff</div>
+          <div class="serif text-[22px] leading-tight mt-0.5">Arbeitsunfähigkeits­bescheinigung</div>
+          <div class="text-[12.5px] text-[var(--ink-500)] mt-1">Seit der eAU werden AU-Bescheinigungen direkt digital übermittelt. Ergänzende Unterlagen können Sie hier hochladen.</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form class="space-y-3 mt-4" onsubmit="return submitAU(event)">
+        <div>
+          <label class="lbl">Für wen?</label>
+          <select class="inp" name="person">
+            ${state.familie.map(p => `<option value="${escapeHTML(p.name)}">${escapeHTML(p.name)}${p.rolle==='Stammversicherter'?' (Sie)':''}</option>`).join('')}
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="lbl">AU-Beginn</label><input class="inp num-mask" name="von" required placeholder="TT.MM.JJJJ"></div>
+          <div><label class="lbl">AU-Ende</label><input class="inp num-mask" name="bis" required placeholder="TT.MM.JJJJ"></div>
+        </div>
+        <div>
+          <label class="lbl">Bescheinigung (Foto oder PDF)</label>
+          <div class="border-2 border-dashed border-[var(--ink-200)] rounded-xl p-5 text-center bg-[var(--ink-50)]">
+            <i data-lucide="upload-cloud" class="w-6 h-6 mx-auto text-[var(--ink-400)]"></i>
+            <div class="text-[12.5px] mt-1.5 text-[var(--ink-700)] font-medium">Dateien hier ablegen</div>
+            <div class="text-[11px] text-[var(--ink-500)]">oder tippen zum Auswählen</div>
+          </div>
+        </div>
+        <div class="pt-2 flex gap-2">
+          <button type="button" class="btn btn-ghost flex-1" onclick="closeSheet()">Abbrechen</button>
+          <button type="submit" class="btn btn-primary flex-1">
+            <i data-lucide="send" class="w-4 h-4"></i> Einreichen
+          </button>
+        </div>
+      </form>
+    </div>
+  `);
+}
+function submitAU(ev) {
+  ev.preventDefault();
+  closeSheet();
+  toast('AU-Bescheinigung übermittelt','success');
+  return false;
+}
+
+function openAntragFormular(typ) {
+  closeSheet();
+  setTimeout(()=> {
+    openSheet(`
+      <div class="px-5 pt-3 pb-5 overflow-y-auto">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Neuer Antrag</div>
+            <div class="serif text-[22px] leading-tight mt-0.5">${escapeHTML(typ)}</div>
+          </div>
+          <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <form id="antragForm" class="space-y-3 mt-4" data-typ="${escapeHTML(typ)}" onsubmit="return submitAntrag(event)">
+          <div>
+            <label class="lbl">Betreff</label>
+            <input class="inp" name="betreff" required placeholder="Kurze Beschreibung" />
+          </div>
+          <div>
+            <label class="lbl">Ereignisdatum</label>
+            <input class="inp num-mask" name="datum" required placeholder="TT.MM.JJJJ" value="${new Date().toLocaleDateString('de-DE')}" />
+          </div>
+          <div>
+            <label class="lbl">Beschreibung</label>
+            <textarea class="inp" name="beschreibung" rows="3" placeholder="Zusätzliche Angaben …"></textarea>
+          </div>
+          <div>
+            <label class="lbl">Belege / Dokumente</label>
+            <div class="border-2 border-dashed border-[var(--ink-200)] rounded-xl p-5 text-center bg-[var(--ink-50)]">
+              <i data-lucide="upload-cloud" class="w-6 h-6 mx-auto text-[var(--ink-400)]"></i>
+              <div class="text-[12.5px] mt-1.5 text-[var(--ink-700)] font-medium">Dateien hier ablegen</div>
+              <div class="text-[11px] text-[var(--ink-500)]">oder tippen zum Auswählen</div>
+            </div>
+          </div>
+          <div class="pt-2 flex gap-2">
+            <button type="button" class="btn btn-ghost flex-1" onclick="closeSheet()">Abbrechen</button>
+            <button type="submit" class="btn btn-primary flex-1">
+              <i data-lucide="send" class="w-4 h-4"></i> Einreichen
+            </button>
+          </div>
+        </form>
+      </div>
+    `);
+  }, 50);
+}
+
+function submitAntrag(ev) {
+  ev.preventDefault();
+  const form = ev.target;
+  const typ      = form.dataset.typ || 'Sonstiges';
+  const betreff  = form.betreff.value.trim()  || '(ohne Betreff)';
+  const datum    = form.datum.value.trim()    || new Date().toLocaleDateString('de-DE');
+
+  const newId = 'a' + (Date.now().toString(36));
+  state.antraege.unshift({
+    id: newId, typ: typ, betreff, datum,
+    status: 'Eingegangen',
+    timeline: [
+      { t: datum, text: 'Antrag eingegangen', current: true },
+      { t: '—',   text: 'Unterlagen werden geprüft' },
+      { t: '—',   text: 'Entscheidung & Rückmeldung' }
+    ]
+  });
+  closeSheet();
+  toast('Antrag erfolgreich eingereicht', 'success');
+  state.activeTab = 'antraege';
+  render();
+  return false;
+}
+
+function openNachricht(id) {
+  const n = state.postfach.find(x => x.id === id);
+  if (!n) return;
+  if (!n.gelesen) { n.gelesen = true; updateBadges(); }
+
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div class="pr-4">
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Nachricht</div>
+          <div class="serif text-[20px] leading-tight mt-0.5">${escapeHTML(n.betreff)}</div>
+          <div class="text-[12px] text-[var(--ink-500)] mt-1">${escapeHTML(n.absender)} · ${n.datum}</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="divider my-4"></div>
+
+      <div class="text-[13.5px] leading-relaxed whitespace-pre-line text-[var(--ink-700)]">${escapeHTML(n.text)}</div>
+
+      ${n.anhang ? `
+        <div class="mt-4 card-flat p-3 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-[var(--rose-100)] text-[var(--rose-600)] flex items-center justify-center">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[13px] font-semibold truncate">${escapeHTML(n.anhang)}</div>
+            <div class="text-[11px] text-[var(--ink-500)]">PDF · angehängt</div>
+          </div>
+          <button class="btn btn-ghost !py-2 !px-3 !text-[12px]" onclick="toast('Anhang heruntergeladen','success')">
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </button>
+        </div>` : ''}
+
+      <div class="mt-5 grid grid-cols-2 gap-2">
+        <button class="btn btn-ghost" onclick="closeSheet()">Schließen</button>
+        <button class="btn btn-primary" onclick="toast('Antwort gesendet','success'); closeSheet()">
+          <i data-lucide="reply" class="w-4 h-4"></i> Antworten
+        </button>
+      </div>
+    </div>
+  `);
+  render(true);
+}
+
+/* ---------- Profil Modals ---------- */
+
+function openAdresseModal() {
+  const a = state.user.adresse;
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Bearbeiten</div>
+          <div class="serif text-[22px] leading-tight mt-0.5">Anschrift ändern</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form class="space-y-3 mt-4" onsubmit="return saveAdresse(event)">
+        <div><label class="lbl">Straße & Hausnummer</label><input class="inp" name="strasse" required value="${escapeHTML(a.strasse)}"></div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="col-span-1"><label class="lbl">PLZ</label><input class="inp num-mask" name="plz" required value="${escapeHTML(a.plz)}"></div>
+          <div class="col-span-2"><label class="lbl">Ort</label><input class="inp" name="ort" required value="${escapeHTML(a.ort)}"></div>
+        </div>
+        <div class="pt-2 flex gap-2">
+          <button type="button" class="btn btn-ghost flex-1" onclick="closeSheet()">Abbrechen</button>
+          <button type="submit" class="btn btn-primary flex-1"><i data-lucide="check" class="w-4 h-4"></i> Speichern</button>
+        </div>
+      </form>
+    </div>
+  `);
+}
+function saveAdresse(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  state.user.adresse = { strasse: f.strasse.value, plz: f.plz.value, ort: f.ort.value };
+  closeSheet(); toast('Anschrift gespeichert','success'); render(true); return false;
+}
+
+function openKontaktModal() {
+  const u = state.user;
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Bearbeiten</div>
+          <div class="serif text-[22px] leading-tight mt-0.5">Kontaktdaten</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form class="space-y-3 mt-4" onsubmit="return saveKontakt(event)">
+        <div><label class="lbl">E-Mail</label><input class="inp" type="email" name="email" required value="${escapeHTML(u.email)}"></div>
+        <div><label class="lbl">Telefon</label><input class="inp" name="telefon" required value="${escapeHTML(u.telefon)}"></div>
+        <div class="pt-2 flex gap-2">
+          <button type="button" class="btn btn-ghost flex-1" onclick="closeSheet()">Abbrechen</button>
+          <button type="submit" class="btn btn-primary flex-1"><i data-lucide="check" class="w-4 h-4"></i> Speichern</button>
+        </div>
+      </form>
+    </div>
+  `);
+}
+function saveKontakt(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  state.user.email   = f.email.value;
+  state.user.telefon = f.telefon.value;
+  closeSheet(); toast('Kontaktdaten aktualisiert','success'); render(true); return false;
+}
+
+function openBankModal() {
+  const u = state.user;
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Bearbeiten</div>
+          <div class="serif text-[22px] leading-tight mt-0.5">Bankverbindung</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form class="space-y-3 mt-4" onsubmit="return saveBank(event)">
+        <div><label class="lbl">IBAN</label><input class="inp num-mask" name="iban" required value="${escapeHTML(u.iban)}"></div>
+        <div class="card-flat p-3 flex items-start gap-2 text-[12px] text-[var(--ink-500)]">
+          <i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--brand-600)]"></i>
+          <span>Änderungen werden zu Ihrer Sicherheit per TAN bestätigt.</span>
+        </div>
+        <div class="pt-2 flex gap-2">
+          <button type="button" class="btn btn-ghost flex-1" onclick="closeSheet()">Abbrechen</button>
+          <button type="submit" class="btn btn-primary flex-1"><i data-lucide="check" class="w-4 h-4"></i> Speichern</button>
+        </div>
+      </form>
+    </div>
+  `);
+}
+function saveBank(ev) {
+  ev.preventDefault();
+  state.user.iban = ev.target.iban.value;
+  closeSheet(); toast('IBAN aktualisiert','success'); render(true); return false;
+}
+
+function openFamilieModal() {
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Hinzufügen</div>
+          <div class="serif text-[22px] leading-tight mt-0.5">Familienmitglied</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form class="space-y-3 mt-4" onsubmit="return saveFamilienmitglied(event)">
+        <div><label class="lbl">Vor- und Nachname</label><input class="inp" name="name" required placeholder="z. B. Anna Mustermann"></div>
+        <div><label class="lbl">Geburtsdatum</label><input class="inp num-mask" name="geburt" required placeholder="TT.MM.JJJJ"></div>
+        <div>
+          <label class="lbl">Verhältnis</label>
+          <select class="inp" name="rolle">
+            <option>Ehepartner:in</option><option>Kind</option><option>Sonstige:r Angehörige:r</option>
+          </select>
+        </div>
+        <div class="pt-2 flex gap-2">
+          <button type="button" class="btn btn-ghost flex-1" onclick="closeSheet()">Abbrechen</button>
+          <button type="submit" class="btn btn-primary flex-1"><i data-lucide="user-plus" class="w-4 h-4"></i> Hinzufügen</button>
+        </div>
+      </form>
+    </div>
+  `);
+}
+function saveFamilienmitglied(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const parts = f.name.value.trim().split(' ');
+  const avatar = (parts[0]?.[0]||'') + (parts[parts.length-1]?.[0]||'');
+  state.familie.push({
+    id: 'f' + Date.now().toString(36),
+    rolle: f.rolle.value, name: f.name.value, geburt: f.geburt.value,
+    status: 'Familienversichert (in Prüfung)',
+    avatar: avatar.toUpperCase()
+  });
+  closeSheet(); toast('Familienmitglied hinzugefügt','success'); render(true); return false;
+}
+
+function openBonusheft() {
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Bonusprogramm</div>
+          <div class="serif text-[22px] leading-tight mt-0.5">Ihr Bonusheft</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="mt-4 p-5 rounded-2xl text-white" style="background: linear-gradient(135deg, #4F9A6E, #3F7D5A);">
+        <div class="text-[11px] uppercase tracking-wider opacity-80">Aktueller Stand</div>
+        <div class="serif text-[34px] leading-none mt-1">340 <span class="text-[16px] opacity-80">Punkte</span></div>
+        <div class="text-[12px] opacity-85 mt-2">Noch 60 Punkte bis zur nächsten Prämie.</div>
+      </div>
+      <div class="mt-4 space-y-2">
+        ${[
+          { t: 'Vorsorgetermin', d: '28.03.2026', p: 80, ok: true },
+          { t: 'Zahnvorsorge',    d: '14.01.2026', p: 80, ok: true },
+          { t: 'Sportkurs',       d: '–',          p: 120, ok: false },
+          { t: 'Ernährungskurs',  d: '–',          p: 60, ok: false }
+        ].map(b => `
+          <div class="card-flat p-3 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center ${b.ok?'bg-[var(--sage-100)] text-[var(--sage-600)]':'bg-[var(--ink-100)] text-[var(--ink-400)]'}">
+              <i data-lucide="${b.ok?'check':'circle-dashed'}" class="w-4 h-4"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[13.5px] font-semibold">${b.t}</div>
+              <div class="text-[11.5px] text-[var(--ink-500)]">${b.d}</div>
+            </div>
+            <div class="text-[12px] font-semibold ${b.ok?'text-[var(--sage-600)]':'text-[var(--ink-400)]'}">+${b.p}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `);
+}
+
+/* ---------- Notifications Popover ---------- */
+
+function toggleNotifPop() {
+  state.ui.notifOffen = !state.ui.notifOffen;
+  const pop = $('#notifPop');
+  if (state.ui.notifOffen) {
+    pop.classList.remove('hidden');
+    pop.innerHTML = `
+      <div class="px-4 py-3 border-b border-[var(--ink-100)] flex items-center justify-between">
+        <div class="font-semibold text-[14px]">Benachrichtigungen</div>
+        <button onclick="toggleNotifPop()" class="text-[var(--ink-500)]"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="overflow-y-auto" style="max-height: 300px;">
+        ${state.notifications.length === 0
+          ? `<div class="p-6 text-center text-[12.5px] text-[var(--ink-500)]">Keine neuen Benachrichtigungen.</div>`
+          : state.notifications.map(n => `
+            <div class="li-row">
+              <div class="avatar" style="width:34px;height:34px"><i data-lucide="${n.ico}" class="w-4 h-4"></i></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-semibold truncate">${escapeHTML(n.titel)}</div>
+                <div class="text-[11px] text-[var(--ink-500)] truncate">${escapeHTML(n.sub)}</div>
+              </div>
+            </div>`).join('')}
+      </div>
+      <div class="px-4 py-2 border-t border-[var(--ink-100)] flex justify-end bg-[var(--ink-50)]">
+        <button class="link text-[12.5px]" onclick="clearNotifs()">Alle gelesen</button>
+      </div>
+    `;
+    lucide.createIcons();
+  } else {
+    pop.classList.add('hidden');
+  }
+}
+function clearNotifs() {
+  state.notifications = [];
+  toggleNotifPop();
+  updateBadges();
+  toast('Benachrichtigungen gelöscht','info');
+}
+
+/* ---------- Toggles / Setters ---------- */
+
+function setAntragFilter(f) { state.ui.antragFilter = f; render(); }
+function setPostFilter(f)   { state.ui.postFilter = f; render(); }
+function toggleVersNr()     { state.ui.versNrSichtbar = !state.ui.versNrSichtbar; render(true); }
+function toggleIban()       { state.ui.ibanSichtbar = !state.ui.ibanSichtbar; render(true); }
+function toggle2FA()        { state.user.twoFA = !state.user.twoFA; toast(`2FA ${state.user.twoFA?'aktiviert':'deaktiviert'}`,'info'); render(true); }
+function toggleNotifs()     { state.user.benachrichtigungen = !state.user.benachrichtigungen; render(true); }
+
+function addMockBescheinigung() {
+  state.postfach.unshift({
+    id: 'n'+Date.now().toString(36),
+    betreff: 'Mitgliedsbescheinigung bereitgestellt',
+    absender: 'MusterKasse · Mitgliederservice',
+    datum: new Date().toLocaleDateString('de-DE'),
+    gelesen: false, wichtig: false,
+    text: 'Sehr geehrter Herr Mustermann,\n\nIhre angeforderte Mitgliedsbescheinigung steht zum Download bereit.\n\nIhre MusterKasse',
+    anhang: 'Mitgliedsbescheinigung_2026.pdf'
+  });
+  updateBadges();
+}
+
+/* ---------- Tab switching ---------- */
+function switchTab(tab) {
+  state.activeTab = tab;
+  $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  render();
+}
+
+/* ---------- Render orchestrator ---------- */
+function render(keepScroll=false) {
+  const c = $('#content');
+  const prevScroll = c.scrollTop;
+  let html = '';
+  switch (state.activeTab) {
+    case 'home':     html = renderHome(); break;
+    case 'antraege': html = renderAntraege(); break;
+    case 'postfach': html = renderPostfach(); break;
+    case 'familie':  html = renderFamilie(); break;
+    case 'profil':   html = renderProfil(); break;
+  }
+  c.innerHTML = html;
+  lucide.createIcons();
+  updateBadges();
+  c.scrollTop = keepScroll ? prevScroll : 0;
+}
+
+/* ---------- Init ---------- */
+function init() {
+  // Clock
+  const setClock = () => {
+    const d = new Date();
+    $('#clock').textContent = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  };
+  setClock(); setInterval(setClock, 30000);
+
+  // Tab bar listeners
+  $$('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+  // Notification
+  $('#notifBtn').addEventListener('click', toggleNotifPop);
+
+  // Close popover on outside click
+  document.addEventListener('click', (e) => {
+    if (!state.ui.notifOffen) return;
+    const pop = $('#notifPop');
+    const btn = $('#notifBtn');
+    if (!pop.contains(e.target) && !btn.contains(e.target)) {
+      state.ui.notifOffen = false;
+      pop.classList.add('hidden');
+    }
+  });
+
+  render();
+  lucide.createIcons();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
