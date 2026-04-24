@@ -2,11 +2,23 @@
 <!--
   ====================================================================
   MusterKasse · Versicherten-App
-  Version: v0.5.1
+  Version: v0.6.0
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.6.0 (2026-04-24) · Mobile-Ready
+    + Fullscreen-Modus auf Handys (bis 640px) ohne Mockup-Rahmen
+    + Safe-Area-Insets für iPhone-Notch und Home-Indikator
+    + Gefakte Status-Bar auf Handy ausgeblendet (echte Handy-Statusbar bleibt)
+    + theme-color Meta-Tag wird dynamisch auf Branding angepasst
+    + Inputs mit min 16px Font-Size (iOS zoomt nicht mehr beim Focus)
+    + Touch-Optimierung: min. 40-52px Touch-Targets
+    + -webkit-overflow-scrolling: touch für sanftes iOS-Scrollen
+    + Hover-Effekte deaktiviert auf Touch-Geräten
+    + Login-Gate auf Handy fullscreen mit korrekten Safe-Areas
+    + apple-mobile-web-app-capable für Home-Screen-Installation
+
   v0.5.1 (2026-04-24) · Security-Fix
     ~ Sichtbaren PIN-Hinweis von Login-Seite entfernt
     ~ Login-Passwort geändert
@@ -53,11 +65,14 @@
     + initialen() robust gegen leere Namen gemacht
   ====================================================================
 -->
-<html lang="de" data-app-version="0.5.1">
+<html lang="de" data-app-version="0.6.0">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MusterKasse · v0.5.1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0E3A75" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>MusterKasse · v0.6.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -676,17 +691,115 @@
     to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
   }
 
-  /* Mobile fallback: wenn wirklich klein, Rand weg */
-  @media (max-width: 480px) {
-    body { padding: 0 !important; background: #0C1521; }
+  /* ============================================================
+     MOBILE: Fullscreen-Modus auf Handys (bis 640px)
+     - Kein Mockup-Rahmen, keine Notch
+     - Safe-Area-Insets (iPhone-Notch, Home-Indikator)
+     - Gefakte Status-Bar versteckt
+     - Touch-Optimierung
+     ============================================================ */
+  @media (max-width: 640px) {
+    /* Body: kein Padding, Farbe die zum Branding passt */
+    body {
+      padding: 0 !important;
+      background: var(--ink-50, #fafafa);
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    /* Handy-Mockup komplett auflösen — App nutzt gesamten Screen */
     .phone-shell {
       max-width: 100%;
-      height: 100vh; /* Fallback */
-      height: 100dvh; /* berücksichtigt dynamische Browser-UI */
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
       border-radius: 0;
       box-shadow: none;
+      /* Safe-Area-Padding für iPhones mit Notch/Home-Indikator */
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: 0; /* wird in tab-bar behandelt */
     }
+
+    /* Mockup-Elemente ausblenden */
     .phone-notch { display: none; }
+    .status-bar { display: none; } /* gefakte Status-Bar weg — echte Status-Bar des Handys bleibt */
+
+    /* App-Header mit safe-area-inset-top falls Status-Bar weg */
+    .app-header {
+      padding-top: calc(14px + env(safe-area-inset-top));
+    }
+
+    /* Tab-Bar: safe-area-inset-bottom für iPhone Home-Indicator */
+    .tab-bar {
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      height: auto; /* Höhe passt sich automatisch an safe-area an */
+      min-height: 64px;
+    }
+
+    /* Content: ermöglicht sanftes Scrollen auf iOS */
+    .app-content {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    /* ======== LOGIN-GATE: Fullscreen auf Handy ======== */
+    .login-gate {
+      max-width: 100%;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      border-radius: 0;
+      box-shadow: none;
+      padding: calc(40px + env(safe-area-inset-top)) 24px calc(40px + env(safe-area-inset-bottom)) 24px;
+    }
+
+    /* Inputs: min. 16px damit iOS nicht reinzoomt beim Focus */
+    .login-inp,
+    .inp,
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"],
+    input[type="number"],
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+
+    /* Touch-Targets: min 44×44px (Apple HIG) */
+    .tab-btn {
+      min-height: 52px; /* statt 44, damit Label und Icon reinpassen */
+    }
+    button, .btn {
+      min-height: 40px; /* für interaktive Buttons */
+    }
+
+    /* Sheets/Modals: Fullscreen auf Handy */
+    .sheet {
+      border-radius: 16px 16px 0 0;
+      max-height: 90dvh;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+
+    /* Profil-Tab Avatar kleiner halten, sonst zu dominant */
+    .vers-switcher-dropdown {
+      max-height: 60dvh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Bottom-Sheet von unten einschieben */
+    #sheetHost > div {
+      border-radius: 16px 16px 0 0 !important;
+    }
+  }
+
+  /* Zusätzlich: Wenn Gerät keine Hover-Unterstützung hat, Hover-Effekte abschalten */
+  @media (hover: none) {
+    .btn:hover, button:hover, .li-row:hover, .tab-btn:hover {
+      background: inherit !important;
+      transform: none !important;
+    }
   }
 </style>
 </head>
@@ -914,8 +1027,20 @@ window.lucide = {
 /* =========================================================
    MusterKasse – Versicherten-App
    ========================================================= */
-const APP_VERSION = '0.5.1';
+const APP_VERSION = '0.6.0';
 const APP_CHANGELOG = [
+  {
+    version: '0.6.0',
+    date: '24.04.2026',
+    changes: [
+      'Mobile-Ready: Fullscreen-Modus auf Handys (bis 640px)',
+      'Safe-Area-Insets für iPhone-Notch & Home-Indikator',
+      'theme-color Meta-Tag passt sich ans Branding an',
+      'Inputs mit min 16px (iOS zoomt nicht mehr beim Focus)',
+      'Touch-Targets mindestens 40-52px',
+      'Smooth-Scroll auf iOS, Hover-Effekte auf Touch-Geräten aus'
+    ]
+  },
   {
     version: '0.5.1',
     date: '24.04.2026',
@@ -1037,6 +1162,9 @@ function applyBrandingToCSS(b) {
     root.style.setProperty('--brand-600', shadeColor(b.primary_color, 0.08));
     root.style.setProperty('--brand-500', b.primary_light || shadeColor(b.primary_color, 0.15));
     root.style.setProperty('--brand-900', shadeColor(b.primary_color, -0.4));
+    // Mobile: iOS-Safari-Statusbar-Farbe und Android-Chrome-Titlebar-Farbe anpassen
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) themeColorMeta.setAttribute('content', b.primary_color);
   }
   if (b.accent_color) {
     root.style.setProperty('--sage-600', b.accent_color);
