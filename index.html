@@ -2,11 +2,16 @@
 <!--
   ====================================================================
   MusterKasse · Versicherten-App
-  Version: v0.2.0
+  Version: v0.2.2
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.2.2 (2026-04-24)
+    ~ eGK-Karte reagiert jetzt auf Branding-Farben (Bug: hartcodierter Gradient)
+    ~ Vorsorge-Widget: dekorative SVG-Grafik entfernt (war störend)
+    ~ applyBrandingTexts wird bei Realtime-Branding-Update aufgerufen
+
   v0.2.0 (2026-04-24)
     + White-Labeling: Branding-Einstellungen werden aus mk_branding geladen
     + CSS-Variablen werden dynamisch aus DB-Werten befüllt
@@ -23,11 +28,11 @@
     + initialen() robust gegen leere Namen gemacht
   ====================================================================
 -->
-<html lang="de" data-app-version="0.2.0">
+<html lang="de" data-app-version="0.2.2">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MusterKasse · v0.2.0</title>
+<title>MusterKasse · v0.2.2</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -196,7 +201,7 @@
     color: #fff;
     overflow: hidden;
     background:
-      radial-gradient(140% 120% at 0% 0%, #1B5FB5 0%, #0E3A75 40%, #0A1F3D 100%);
+      radial-gradient(140% 120% at 0% 0%, var(--brand-500) 0%, var(--brand-700) 40%, var(--brand-900) 100%);
     box-shadow: 0 20px 40px -18px rgba(10, 31, 61, 0.55), 0 4px 10px -4px rgba(10,31,61,.25);
   }
   .egk::before {
@@ -204,7 +209,8 @@
     position: absolute; inset: 0;
     background:
       radial-gradient(500px 200px at 110% -20%, rgba(255,255,255,.18), transparent 50%),
-      radial-gradient(300px 150px at -10% 120%, rgba(79,154,110,.35), transparent 60%);
+      radial-gradient(300px 150px at -10% 120%, var(--sage-500, rgba(79,154,110,.35)), transparent 60%);
+    opacity: 0.35;
     pointer-events: none;
   }
   .egk-pattern {
@@ -687,8 +693,17 @@ window.lucide = {
 /* =========================================================
    MusterKasse – Versicherten-App
    ========================================================= */
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.2.2';
 const APP_CHANGELOG = [
+  {
+    version: '0.2.2',
+    date: '24.04.2026',
+    changes: [
+      'eGK-Karte reagiert jetzt auf Branding-Farben',
+      'Vorsorge-Widget: dekorative SVG-Grafik entfernt',
+      'Branding-Live-Update aktualisiert auch Header-Texte'
+    ]
+  },
   {
     version: '0.2.0',
     date: '24.04.2026',
@@ -1266,22 +1281,8 @@ function renderHome() {
     <!-- Vorsorge -->
     <div>
       <div class="section-title"><h3>${escapeHTML(state.branding?.vorsorge_titel || 'Gesundheit & Vorsorge')}</h3></div>
-      <div class="card relative" style="overflow: hidden;">
-        <!-- Dekorative Wellen-Illustration im Hintergrund -->
-        <svg viewBox="0 0 320 100" class="absolute right-0 top-0 h-full pointer-events-none" style="width: 55%; opacity: 0.9;" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
-          <defs>
-            <linearGradient id="vorsorgeGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#4F9A6E" stop-opacity="0.14"/>
-              <stop offset="100%" stop-color="#4F9A6E" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <!-- Sanfte Hintergrund-Welle (bleibt innerhalb viewBox) -->
-          <path d="M0 55 Q 80 30 160 55 T 320 55 L 320 100 L 0 100 Z" fill="url(#vorsorgeGrad)"/>
-          <path d="M0 70 Q 80 50 160 70 T 320 70" stroke="#4F9A6E" stroke-opacity="0.22" stroke-width="1.2" fill="none"/>
-          <!-- Herz-Puls-Linie mittig-rechts, sauber innerhalb viewBox -->
-          <path d="M160 50 L 180 50 L 186 36 L 196 64 L 206 28 L 216 60 L 226 50 L 310 50" stroke="#4F9A6E" stroke-opacity="0.45" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div class="relative p-4 flex items-center gap-3">
+      <div class="card">
+        <div class="p-4 flex items-center gap-3">
           <div class="w-11 h-11 rounded-xl bg-[var(--sage-100)] text-[var(--sage-600)] flex items-center justify-center flex-shrink-0">
             <i data-lucide="stethoscope" class="w-5 h-5"></i>
           </div>
@@ -2370,6 +2371,7 @@ function scheduleBrandingReload() {
       const b = await api.loadBranding();
       state.branding = b;
       applyBrandingToCSS(b);
+      applyBrandingTexts(b);
       showRealtimePulse('Design aktualisiert');
       render(true);
     } catch (e) { console.warn('Branding-Reload fehlgeschlagen:', e); }
