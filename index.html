@@ -2,11 +2,18 @@
 <!--
   ====================================================================
   MusterKasse · Versicherten-App
-  Version: v0.4.0
+  Version: v0.5.0
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.5.0 (2026-04-24) · Login-Schutz
+    + Login-Gate mit Versichertennummer + PIN (Demo-PIN: 1234)
+    + Gate übernimmt Branding: Farben, Logo, Kassenname
+    + Shake-Animation bei falschem PIN
+    + App wird erst nach erfolgreichem Login initialisiert
+    ~ DAK-Preset auf authentisches Orange (#EC6608) angepasst
+
   v0.4.0 (2026-04-24) · Tab-spezifisches Branding
     + Anträge-Tab zeigt Branding-Titel + Subtext aus mk_branding
     + Postfach-Tab zeigt Branding-Titel + Subtext
@@ -41,11 +48,11 @@
     + initialen() robust gegen leere Namen gemacht
   ====================================================================
 -->
-<html lang="de" data-app-version="0.4.0">
+<html lang="de" data-app-version="0.5.0">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MusterKasse · v0.4.0</title>
+<title>MusterKasse · v0.5.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -95,6 +102,170 @@
   }
 
   .serif { font-family: 'Instrument Serif', ui-serif, Georgia, serif; letter-spacing: -0.01em; }
+
+  /* ============ LOGIN-GATE ============ */
+  .login-gate {
+    width: 100%;
+    max-width: 420px;
+    height: min(900px, 94vh);
+    background: #fff;
+    border-radius: 44px;
+    box-shadow:
+      0 40px 80px -20px rgba(12, 21, 33, 0.35),
+      0 12px 32px -8px rgba(12, 21, 33, 0.18),
+      0 0 0 10px #0C1521,
+      0 0 0 11px #1a2636;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
+  }
+  .login-gate::before {
+    content: "";
+    position: absolute;
+    top: -100px; left: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, var(--brand-500, #1B5FB5) 0%, transparent 70%);
+    opacity: 0.15;
+    pointer-events: none;
+  }
+  .login-gate::after {
+    content: "";
+    position: absolute;
+    bottom: -150px; right: -100px;
+    width: 350px; height: 350px;
+    background: radial-gradient(circle, var(--sage-600, #3F7D5A) 0%, transparent 70%);
+    opacity: 0.12;
+    pointer-events: none;
+  }
+  .login-card {
+    position: relative;
+    width: 100%;
+    text-align: center;
+  }
+  .login-logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .login-logo {
+    width: 64px; height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-800) 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Instrument Serif', serif;
+    font-size: 34px;
+    font-weight: 400;
+    box-shadow: 0 8px 24px -6px rgba(14,58,117,0.4), inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  .login-kicker {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-500);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .login-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    line-height: 1;
+    color: var(--ink-900);
+    letter-spacing: -0.01em;
+  }
+  .login-slogan {
+    font-size: 13px;
+    color: var(--ink-500);
+    margin-top: 4px;
+    margin-bottom: 32px;
+  }
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    text-align: left;
+  }
+  .login-lbl {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-500);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .login-inp {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--ink-200);
+    border-radius: 11px;
+    font-size: 14px;
+    color: var(--ink-900);
+    background: #fff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    letter-spacing: 0.03em;
+    outline: none;
+  }
+  .login-inp:focus {
+    border-color: var(--brand-600);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-600) 15%, transparent);
+  }
+  .login-inp.shake {
+    animation: loginShake 0.4s ease;
+    border-color: #DC2626;
+  }
+  @keyframes loginShake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  .login-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--brand-700);
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 4px;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .login-btn:hover { background: var(--brand-800); }
+  .login-btn:active { transform: scale(0.98); }
+  .login-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 12px;
+    background: #FEF2F2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+    border-radius: 9px;
+    font-size: 12.5px;
+    margin-top: -4px;
+  }
+  .login-hint {
+    font-size: 11.5px;
+    color: var(--ink-500);
+    text-align: center;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
 
   /* ---------- Phone shell ---------- */
   .phone-shell {
@@ -516,7 +687,44 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 sm:p-6">
 
-<main id="app" class="phone-shell">
+<!-- ============ LOGIN-GATE ============ -->
+<div id="loginGate" class="login-gate">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <div id="loginLogo" class="login-logo">+</div>
+    </div>
+    <div class="login-kicker">Versicherten-App</div>
+    <h1 id="loginKassenname" class="login-title">MusterKasse</h1>
+    <div id="loginSlogan" class="login-slogan">Ihre Online-Geschäftsstelle</div>
+
+    <form id="loginForm" class="login-form">
+      <div>
+        <label class="login-lbl">Versichertennummer</label>
+        <input id="loginVersNr" class="login-inp mono" type="text" value="A123 456 789" autocomplete="off" spellcheck="false">
+      </div>
+      <div>
+        <label class="login-lbl">PIN</label>
+        <input id="loginPin" class="login-inp mono" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+      </div>
+      <button type="submit" class="login-btn">
+        <span>Anmelden</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+
+      <div id="loginError" class="login-error" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>PIN ist nicht korrekt</span>
+      </div>
+
+      <div class="login-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;opacity:0.6;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        Demo-PIN: <span class="mono">1234</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<main id="app" class="phone-shell" style="display:none;">
   <div class="phone-notch"></div>
 
   <!-- Status bar -->
@@ -706,8 +914,18 @@ window.lucide = {
 /* =========================================================
    MusterKasse – Versicherten-App
    ========================================================= */
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 const APP_CHANGELOG = [
+  {
+    version: '0.5.0',
+    date: '24.04.2026',
+    changes: [
+      'Login-Gate: App ist jetzt PIN-geschützt',
+      'Demo-PIN: 1234',
+      'Login-Gate übernimmt Branding der Kasse',
+      'Shake-Animation bei falschem PIN'
+    ]
+  },
   {
     version: '0.4.0',
     date: '24.04.2026',
@@ -2630,7 +2848,71 @@ async function init() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', init);
+/* ============ LOGIN-GATE ============ */
+const APP_PIN = '1234';  // Demo-PIN
+
+function initLoginGate() {
+  const form = document.getElementById('loginForm');
+  const pinInput = document.getElementById('loginPin');
+  const versNrInput = document.getElementById('loginVersNr');
+  const errorEl = document.getElementById('loginError');
+
+  // Branding auf Login-Gate anwenden (noch bevor App lädt)
+  applyLoginBranding();
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.style.display = 'none';
+    pinInput.classList.remove('shake');
+
+    const pin = pinInput.value.trim();
+    if (pin !== APP_PIN) {
+      pinInput.classList.add('shake');
+      errorEl.style.display = 'flex';
+      pinInput.value = '';
+      setTimeout(() => pinInput.classList.remove('shake'), 450);
+      pinInput.focus();
+      return;
+    }
+
+    // Login erfolgreich: Gate verschwinden lassen, App anzeigen
+    const gate = document.getElementById('loginGate');
+    const app = document.getElementById('app');
+
+    gate.style.transition = 'opacity 0.25s ease';
+    gate.style.opacity = '0';
+    setTimeout(() => {
+      gate.style.display = 'none';
+      app.style.display = 'flex';
+      // App initialisieren (erst jetzt Daten laden)
+      init();
+    }, 250);
+  });
+
+  // Autofokus auf PIN wenn Seite geladen
+  setTimeout(() => pinInput.focus(), 100);
+}
+
+/* Branding auf das Login-Gate anwenden (aus DEFAULT oder später live) */
+async function applyLoginBranding() {
+  // Erst Branding aus DB laden, damit Login-Gate die richtige Farbe hat
+  try {
+    const { data } = await sb.from(T.branding).select('*').eq('id','singleton').single();
+    const b = data || DEFAULT_BRANDING;
+    applyBrandingToCSS(b);
+    // Login-Gate-Texte aktualisieren
+    const logoEl = document.getElementById('loginLogo');
+    const kassennameEl = document.getElementById('loginKassenname');
+    const sloganEl = document.getElementById('loginSlogan');
+    if (logoEl) logoEl.textContent = b.logo_buchstabe || '+';
+    if (kassennameEl) kassennameEl.textContent = b.kassenname || 'MusterKasse';
+    if (sloganEl) sloganEl.textContent = b.slogan || 'Ihre Online-Geschäftsstelle';
+  } catch (e) {
+    console.warn('Login-Branding-Load:', e);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initLoginGate);
 </script>
 </body>
 </html>
