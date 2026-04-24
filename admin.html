@@ -2,11 +2,25 @@
 <!--
   ====================================================================
   NichtGanz-21c · Admin-Panel
-  Version: v0.2.1
+  Version: v0.3.0
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.3.0 (2026-04-24) · Zwei-Wege-Kommunikation
+    + Versicherte können jetzt auf Nachrichten antworten (in der App)
+    + Admin sieht eingehende Antworten mit grünem "Antwort"-Chip
+    + Thread-Ansicht: Konversations-Verlauf chronologisch
+    + Admin kann direkt aus Thread heraus antworten (Empfänger + Betreff vorbelegt)
+    + Neuer Postfach-Filter "Antworten von Versicherten"
+    + Dashboard-Sub zeigt Anzahl neuer Antworten
+    + Absender-Vorauswahl nutzt jetzt dynamisch den Branding-Kassennamen
+    ~ "21c"-Suffix größer und besser lesbar (14px statt 11px im PIN-Gate)
+
+  v0.2.2 (2026-04-24) · Text-Refinement
+    ~ BITMARCK-Erwähnung aus Brandingtool-Infotext entfernt
+    ~ Ersetzt durch neutraleren Fachbegriff "Mandantenfähige Architektur"
+
   v0.2.1 (2026-04-24) · Design-Refresh
     ~ Komplette Umstellung auf Sans-Serif (Geist, 300-900)
     ~ Keine Kursiv-Schrift mehr — moderne SaaS-Ästhetik (Linear-Style)
@@ -36,11 +50,11 @@
     + Sidebar-Footer zeigt Infrastruktur-Kontext (Coolify + Supabase)
   ====================================================================
 -->
-<html lang="de" data-admin-version="0.2.1">
+<html lang="de" data-admin-version="0.3.0">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NichtGanz-21c · Admin · v0.2.1</title>
+<title>NichtGanz-21c · Admin · v0.3.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -119,15 +133,17 @@
   }
   .brand-suffix {
     font-family: 'Geist Mono', ui-monospace, monospace;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--brand-700);
     letter-spacing: 0;
     display: inline-block;
-    padding: 2px 7px;
-    border-radius: 5px;
+    padding: 2px 8px;
+    border-radius: 6px;
     background: var(--brand-50);
     vertical-align: middle;
     border: 1px solid var(--brand-100);
+    line-height: 1.4;
   }
   .brand-mark-logo {
     position: relative;
@@ -956,7 +972,7 @@
         Nicht<em>Ganz</em>
       </div>
       <div class="flex items-center gap-1.5 mt-1.5">
-        <span class="brand-suffix" style="font-size:11px;">21c</span>
+        <span class="brand-suffix" style="font-size:14px;">21c</span>
         <span class="text-[10.5px] text-[var(--ink-400)] uppercase tracking-[0.12em] font-medium">Admin</span>
       </div>
     </div>
@@ -988,7 +1004,7 @@
           Nicht<em>Ganz</em>
         </div>
         <div class="flex items-center gap-1.5 mt-0.5">
-          <span class="brand-suffix" style="font-size:9.5px;padding:1px 5px;">21c</span>
+          <span class="brand-suffix" style="font-size:11px;padding:1.5px 7px;">21c</span>
           <span class="text-[9.5px] text-[var(--ink-400)] uppercase tracking-[0.12em] font-medium">Admin</span>
         </div>
       </div>
@@ -1090,8 +1106,29 @@
 /* =========================================================
    NichtGanz-21c · Admin-Panel
    ========================================================= */
-const ADMIN_VERSION = '0.2.1';
+const ADMIN_VERSION = '0.3.0';
 const ADMIN_CHANGELOG = [
+  {
+    version: '0.3.0',
+    date: '24.04.2026',
+    changes: [
+      'Zwei-Wege-Kommunikation: Versicherte können antworten',
+      'Admin: Eingehende Antworten mit grünem Chip markiert',
+      'Thread-Ansicht zeigt kompletten Konversationsverlauf',
+      'Direkter Antworten-Button im Nachrichten-Drawer',
+      'Neuer Filter "Antworten von Versicherten"',
+      'Absender-Namen nutzen dynamisch den Branding-Kassennamen',
+      '"21c"-Suffix größer und lesbarer'
+    ]
+  },
+  {
+    version: '0.2.2',
+    date: '24.04.2026',
+    changes: [
+      'Text-Refinement: Fachbegriff im Brandingtool-Infotext angepasst',
+      'Neutraler formuliert für halb-öffentliche Nutzung'
+    ]
+  },
   {
     version: '0.2.1',
     date: '24.04.2026',
@@ -1380,12 +1417,14 @@ const api = {
     const { error } = await sb.from(T.timeline).insert({ antrag_id: antragId, datum, text, status, sortierung: nextSort });
     if (error) throw error;
   },
-  async sendNachricht({ versicherter_id, betreff, absender, text, wichtig, anhang_name }) {
+  async sendNachricht({ versicherter_id, betreff, absender, text, wichtig, anhang_name, thread_id }) {
     const heute = new Date().toISOString().slice(0,10);
     const { error } = await sb.from(T.nachrichten).insert({
       versicherter_id, betreff, absender: absender || 'MusterKasse · Sachbearbeitung',
       text, wichtig: !!wichtig, anhang_name: anhang_name || null,
-      datum: heute, gelesen: false
+      datum: heute, gelesen: false,
+      richtung: 'ausgehend',
+      thread_id: thread_id || null
     });
     if (error) throw error;
   },
@@ -2175,25 +2214,32 @@ function renderPostfach() {
   let list = state.nachrichten.slice();
   if (f.gelesen === 'ungelesen') list = list.filter(n => !n.gelesen);
   if (f.gelesen === 'gelesen')   list = list.filter(n => n.gelesen);
+  if (f.gelesen === 'eingehend') list = list.filter(n => n.richtung === 'eingehend');
 
-  const fChip = (id, label) => `
-    <button onclick="state.filters.postfach.gelesen='${id}'; renderView();" class="chip ${f.gelesen===id ? 'chip-blue' : 'chip-gray'}" style="cursor:pointer; padding:5px 11px;">${label}</button>
+  const fChip = (id, label, count) => `
+    <button onclick="state.filters.postfach.gelesen='${id}'; renderView();" class="chip ${f.gelesen===id ? 'chip-blue' : 'chip-gray'}" style="cursor:pointer; padding:5px 11px;">
+      ${label}${count !== undefined ? ` <span class="num" style="opacity:0.7;">${count}</span>` : ''}
+    </button>
   `;
+
+  const eingehendCount = state.nachrichten.filter(n => n.richtung === 'eingehend').length;
+  const eingehendUngelesen = state.nachrichten.filter(n => n.richtung === 'eingehend' && !n.gelesen).length;
 
   return `
     <div class="flex items-start justify-between">
       <div>
         <div class="page-eyebrow">Verwaltung</div>
         <h1 class="page-title"><em>Postfach</em></h1>
-        <p class="page-sub">${list.length} Nachrichten · an Versicherte senden und verwalten</p>
+        <p class="page-sub">${list.length} Nachrichten · ${eingehendCount > 0 ? `<span style="color:var(--sage-700); font-weight:500;">${eingehendUngelesen} neue Antwort${eingehendUngelesen===1?'':'en'} von Versicherten</span> · ` : ''}an Versicherte senden und verwalten</p>
       </div>
       <button class="btn btn-primary" onclick="openNachrichtModal()">${iconSvg('plus',14)} Neue Nachricht</button>
     </div>
 
-    <div class="flex gap-2 mt-6">
+    <div class="flex gap-2 mt-6 flex-wrap">
       ${fChip('alle','Alle')}
       ${fChip('ungelesen','Ungelesen')}
       ${fChip('gelesen','Gelesen')}
+      ${fChip('eingehend','Antworten von Versicherten', eingehendCount)}
     </div>
 
     <div class="panel mt-5">
@@ -2201,13 +2247,22 @@ function renderPostfach() {
         ? `<div class="empty"><div class="empty-icon">${iconSvg('mail',22)}</div>Keine Nachrichten in dieser Ansicht</div>`
         : `<table class="tbl">
           <thead><tr>
-            <th style="width:40px;"></th><th>Empfänger</th><th>Betreff</th><th>Absender</th><th>Datum</th><th></th>
+            <th style="width:40px;"></th><th>Versicherter</th><th>Richtung</th><th>Betreff</th><th>Absender</th><th>Datum</th><th></th>
           </tr></thead>
           <tbody>
-            ${list.map(n => `
-              <tr class="clickable" onclick="openNachrichtDrawer('${n.id}')">
-                <td>${n.gelesen ? '' : '<div style="width:8px;height:8px;border-radius:50%;background:var(--brand-600);"></div>'}</td>
+            ${list.map(n => {
+              const isEingehend = n.richtung === 'eingehend';
+              const rowBg = isEingehend && !n.gelesen ? 'style="background: rgba(79,154,110,0.04);"' : '';
+              return `
+              <tr class="clickable" ${rowBg} onclick="openNachrichtDrawer('${n.id}')">
+                <td>${n.gelesen ? '' : `<div style="width:8px;height:8px;border-radius:50%;background:${isEingehend ? 'var(--sage-600)' : 'var(--brand-600)'};"></div>`}</td>
                 <td>${renderMiniUser(n.versicherter_id)}</td>
+                <td>
+                  ${isEingehend
+                    ? `<span class="chip chip-green" style="font-size:10.5px;padding:2px 7px;">${iconSvg('reply',10)} Antwort</span>`
+                    : `<span class="chip chip-gray" style="font-size:10.5px;padding:2px 7px;">Ausgehend</span>`
+                  }
+                </td>
                 <td>
                   <div class="flex items-center gap-1.5">
                     ${n.wichtig ? `<span class="chip chip-amber" style="font-size:10px;padding:2px 6px;">${iconSvg('star',10)}</span>` : ''}
@@ -2218,7 +2273,7 @@ function renderPostfach() {
                 <td class="text-[12.5px] text-[var(--ink-600)]">${escapeHTML(n.absender)}</td>
                 <td class="num text-[var(--ink-500)]">${isoToDE(n.datum)}</td>
                 <td class="text-right text-[var(--ink-400)]">${iconSvg('chevron-right',14)}</td>
-              </tr>`).join('')}
+              </tr>`}).join('')}
           </tbody>
         </table>`
       }
@@ -2229,10 +2284,23 @@ function renderPostfach() {
 function openNachrichtDrawer(id) {
   const n = state.nachrichten.find(x => x.id === id);
   if (!n) return;
+
+  // Thread finden: alle Nachrichten mit thread_id = n.thread_id || n.id
+  const threadId = n.thread_id || n.id;
+  const thread = state.nachrichten
+    .filter(m => (m.thread_id || m.id) === threadId || m.id === threadId || m.thread_id === n.id)
+    .sort((a,b) => (a.created_at || a.datum || '').localeCompare(b.created_at || b.datum || ''));
+
+  const isEingehend = n.richtung === 'eingehend';
+
   const html = `
     <div class="drawer-header">
       <div>
-        <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Nachricht</div>
+        <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium flex items-center gap-1.5">
+          ${isEingehend
+            ? `<span class="chip chip-green" style="font-size:10px;padding:2px 6px;">${iconSvg('reply',10)} Antwort</span> von Versicherter`
+            : 'Nachricht'}
+        </div>
         <div class="serif" style="font-size:22px; line-height:1.15; margin-top:2px;">${escapeHTML(n.betreff)}</div>
       </div>
       <button class="icon-btn" onclick="closeDrawer()">${iconSvg('x',16)}</button>
@@ -2241,7 +2309,7 @@ function openNachrichtDrawer(id) {
       <div class="panel">
         <div style="padding: 16px 18px;">
           <dl class="kv-grid">
-            <dt>An</dt><dd>${renderMiniUser(n.versicherter_id)}</dd>
+            <dt>${isEingehend ? 'Von' : 'An'}</dt><dd>${renderMiniUser(n.versicherter_id)}</dd>
             <dt>Absender</dt><dd>${escapeHTML(n.absender)}</dd>
             <dt>Datum</dt><dd class="num">${isoToDE(n.datum)}</dd>
             <dt>Status</dt><dd>${n.gelesen ? '<span class="chip chip-gray">Gelesen</span>' : '<span class="chip chip-blue">Ungelesen</span>'}</dd>
@@ -2251,16 +2319,46 @@ function openNachrichtDrawer(id) {
         </div>
       </div>
 
-      <div class="panel mt-4">
-        <div class="panel-header"><div class="panel-title">Inhalt</div></div>
-        <div style="padding: 16px 18px; font-size: 13.5px; color: var(--ink-800); white-space: pre-line; line-height: 1.55;">${escapeHTML(n.text)}</div>
-      </div>
+      ${thread.length > 1 ? `
+        <div class="panel mt-4">
+          <div class="panel-header">
+            <div class="panel-title">Konversations-Verlauf · ${thread.length} Nachrichten</div>
+          </div>
+          <div style="padding: 4px 0;">
+            ${thread.map(m => {
+              const mEin = m.richtung === 'eingehend';
+              return `
+                <div style="padding: 14px 18px; border-bottom: 1px solid var(--ink-100); ${mEin ? 'background: rgba(79,154,110,0.04);' : ''}">
+                  <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-2">
+                      ${mEin
+                        ? `<span class="chip chip-green" style="font-size:9.5px;padding:1.5px 6px;">${iconSvg('reply',9)} Antwort</span>`
+                        : `<span class="chip chip-gray" style="font-size:9.5px;padding:1.5px 6px;">Kasse</span>`}
+                      <span class="text-[12px] font-semibold">${escapeHTML(m.absender)}</span>
+                    </div>
+                    <span class="text-[11px] text-[var(--ink-500)] num">${isoToDE(m.datum)}</span>
+                  </div>
+                  <div class="text-[12.5px] text-[var(--ink-700)]" style="white-space: pre-line; line-height: 1.5;">${escapeHTML(m.text)}</div>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : `
+        <div class="panel mt-4">
+          <div class="panel-header"><div class="panel-title">Inhalt</div></div>
+          <div style="padding: 16px 18px; font-size: 13.5px; color: var(--ink-800); white-space: pre-line; line-height: 1.55;">${escapeHTML(n.text)}</div>
+        </div>
+      `}
 
       <div class="flex gap-2 mt-6">
+        ${isEingehend
+          ? `<button class="btn btn-primary flex-1" onclick="openNachrichtModal('${n.versicherter_id}', 'Re: ${escapeHTML(n.betreff.replace(/^Re:\\s*/,''))}', '${threadId}')">${iconSvg('reply',14)} Antworten</button>`
+          : `<button class="btn btn-primary flex-1" onclick="openNachrichtModal('${n.versicherter_id}')">${iconSvg('send',14)} Neue Nachricht</button>`
+        }
         ${n.gelesen
-          ? `<button class="btn btn-secondary flex-1" onclick="toggleGelesen('${n.id}', false)">Als ungelesen markieren</button>`
-          : `<button class="btn btn-secondary flex-1" onclick="toggleGelesen('${n.id}', true)">Als gelesen markieren</button>`}
-        <button class="btn btn-danger" onclick="confirmDeleteNachricht('${n.id}')">${iconSvg('trash',14)} Löschen</button>
+          ? `<button class="btn btn-secondary" onclick="toggleGelesen('${n.id}', false)">Ungelesen</button>`
+          : `<button class="btn btn-secondary" onclick="toggleGelesen('${n.id}', true)">Gelesen</button>`}
+        <button class="btn btn-danger" onclick="confirmDeleteNachricht('${n.id}')">${iconSvg('trash',14)}</button>
       </div>
     </div>
   `;
@@ -2291,28 +2389,30 @@ async function confirmDeleteNachricht(id) {
   } catch (e) { toast('Fehler: ' + e.message, 'error'); }
 }
 
-function openNachrichtModal(empfaengerId='', vorbelegterBetreff='') {
+function openNachrichtModal(empfaengerId='', vorbelegterBetreff='', threadId='') {
   openModal(`
     <div style="padding: 22px 24px 20px 24px; border-bottom: 1px solid var(--ink-150);">
-      <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Neue Nachricht</div>
-      <div class="serif" style="font-size:22px; line-height:1.1; margin-top:2px;">Nachricht senden</div>
+      <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">${threadId ? 'Antwort an Versicherten' : 'Neue Nachricht'}</div>
+      <div class="serif" style="font-size:22px; line-height:1.1; margin-top:2px;">${threadId ? 'Antwort senden' : 'Nachricht senden'}</div>
     </div>
     <form id="msgForm" style="padding: 20px 24px; display:flex; flex-direction:column; gap:14px; overflow-y:auto;" onsubmit="return submitNachricht(event)">
+      <input type="hidden" name="thread_id" value="${escapeHTML(threadId)}">
       <div>
         <label class="lbl">Empfänger</label>
-        <select class="inp" name="empfaenger" required>
+        <select class="inp" name="empfaenger" required ${threadId ? 'disabled' : ''}>
           <option value="">— bitte wählen —</option>
           ${state.versicherte.map(v => `<option value="${v.id}" ${empfaengerId===v.id?'selected':''}>${escapeHTML(v.vorname)} ${escapeHTML(v.nachname)} · ${escapeHTML(v.versichertennummer)}</option>`).join('')}
         </select>
+        ${threadId ? `<input type="hidden" name="empfaenger_hidden" value="${escapeHTML(empfaengerId)}">` : ''}
       </div>
       <div>
         <label class="lbl">Absender (wird in der App angezeigt)</label>
         <select class="inp" name="absender">
-          <option>MusterKasse · Sachbearbeitung</option>
-          <option>MusterKasse · Mitgliederservice</option>
-          <option>MusterKasse · Bonusprogramm</option>
-          <option>MusterKasse · Prävention</option>
-          <option>MusterKasse · Beitragsservice</option>
+          <option>${escapeHTML((state.branding?.kassenname_kurz || 'MusterKasse'))} · Sachbearbeitung</option>
+          <option>${escapeHTML((state.branding?.kassenname_kurz || 'MusterKasse'))} · Mitgliederservice</option>
+          <option>${escapeHTML((state.branding?.kassenname_kurz || 'MusterKasse'))} · Bonusprogramm</option>
+          <option>${escapeHTML((state.branding?.kassenname_kurz || 'MusterKasse'))} · Prävention</option>
+          <option>${escapeHTML((state.branding?.kassenname_kurz || 'MusterKasse'))} · Beitragsservice</option>
         </select>
       </div>
       <div>
@@ -2350,13 +2450,15 @@ async function submitNachricht(ev) {
   const btn = f.querySelector('button[type="submit"]');
   btn.disabled = true; btn.style.opacity = '0.6';
   try {
+    const empfaenger = f.empfaenger.disabled ? f.empfaenger_hidden.value : f.empfaenger.value;
     await api.sendNachricht({
-      versicherter_id: f.empfaenger.value,
+      versicherter_id: empfaenger,
       betreff: f.betreff.value,
       absender: f.absender.value,
       text: f.text.value,
       wichtig: f.wichtig.checked,
-      anhang_name: f.anhang.value || null
+      anhang_name: f.anhang.value || null,
+      thread_id: f.thread_id.value || null
     });
     closeModal();
     toast('Nachricht gesendet', 'success');
@@ -3037,8 +3139,7 @@ function renderBranding() {
         <div>
           <div class="text-[13px] font-semibold text-[var(--brand-900)]">White-Labeling · wie funktioniert das?</div>
           <div class="text-[12px] text-[var(--ink-700)] mt-1 leading-relaxed">
-            Bei der BITMARCK-Architektur läuft eine einzige Code-Basis für viele verschiedene Krankenkassen
-            — jede in ihrer eigenen Farbwelt und mit ihren Inhalten. Genau das simuliert dieses Brandingtool:
+            Mandantenfähige Architektur: Eine einzige Code-Basis bedient viele Krankenkassen — jede in ihrer eigenen Farbwelt und mit ihren Inhalten.
             Die Einstellungen werden in der Datenbank gespeichert (<span class="mono">mk_branding</span>),
             die App lädt sie beim Start und wendet sie über CSS-Variablen an.
             Dank <span class="font-semibold">Realtime</span> erscheint jede Änderung sofort bei allen
