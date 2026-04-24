@@ -452,6 +452,11 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  @keyframes pulse-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(0.9); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  }
+
   /* Mobile fallback: wenn wirklich klein, Rand weg */
   @media (max-width: 480px) {
     body { padding: 0 !important; background: #0C1521; }
@@ -568,6 +573,7 @@ const LUCIDE_PATHS = {
   "calendar-check": `<path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /><path d="m9 16 2 2 4-4" />`,
   "check": `<path d="M20 6 9 17l-5-5" />`,
   "chevron-right": `<path d="m9 18 6-6-6-6" />`,
+  "chevron-down": `<path d="m6 9 6 6 6-6" />`,
   "circle": `<circle cx="12" cy="12" r="10" />`,
   "circle-check": `<circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />`,
   "circle-dashed": `<path d="M10.1 2.182a10 10 0 0 1 3.8 0" /><path d="M13.9 21.818a10 10 0 0 1-3.8 0" /><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7" /><path d="M2.182 13.9a10 10 0 0 1 0-3.8" /><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69" /><path d="M21.818 10.1a10 10 0 0 1 0 3.8" /><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69" /><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7" />`,
@@ -762,6 +768,16 @@ const api = {
     }).select().single();
     if (error) throw error;
     return data;
+  },
+
+  async updateVersicherter(id, patch) {
+    const { error } = await sb.from(T.versicherte).update(patch).eq('id', id);
+    if (error) throw error;
+  },
+
+  async addFamilie({ versicherter_id, name, rolle, geburtsdatum, status }) {
+    const { error } = await sb.from(T.familie).insert({ versicherter_id, name, rolle, geburtsdatum, status });
+    if (error) throw error;
   }
 };
 
@@ -839,8 +855,8 @@ async function ladeAllesFuerVersicherten(id) {
 
     // Familie: Stammversicherter + Familienmitglieder
     const initialen = (name) => {
-      const p = name.trim().split(' ');
-      return (p[0]?.[0] || '') + (p[p.length-1]?.[0] || '');
+      const p = String(name || '').trim().split(' ').filter(Boolean);
+      return (p[0]?.[0] || '?') + (p[p.length-1]?.[0] || '');
     };
     state.familie = [
       {
@@ -1807,11 +1823,23 @@ function openAdresseModal() {
     </div>
   `);
 }
-function saveAdresse(ev) {
+async function saveAdresse(ev) {
   ev.preventDefault();
   const f = ev.target;
-  state.user.adresse = { strasse: f.strasse.value, plz: f.plz.value, ort: f.ort.value };
-  closeSheet(); toast('Anschrift gespeichert','success'); render(true); return false;
+  const patch = { strasse: f.strasse.value, plz: f.plz.value, ort: f.ort.value };
+  const btn = f.querySelector('button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  try {
+    await api.updateVersicherter(state.aktiveVersicherterId, patch);
+    state.user.adresse = { strasse: patch.strasse, plz: patch.plz, ort: patch.ort };
+    closeSheet();
+    toast('Anschrift gespeichert','success');
+    render(true);
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'warn');
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+  return false;
 }
 
 function openKontaktModal() {
@@ -1836,12 +1864,24 @@ function openKontaktModal() {
     </div>
   `);
 }
-function saveKontakt(ev) {
+async function saveKontakt(ev) {
   ev.preventDefault();
   const f = ev.target;
-  state.user.email   = f.email.value;
-  state.user.telefon = f.telefon.value;
-  closeSheet(); toast('Kontaktdaten aktualisiert','success'); render(true); return false;
+  const patch = { email: f.email.value, telefon: f.telefon.value };
+  const btn = f.querySelector('button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  try {
+    await api.updateVersicherter(state.aktiveVersicherterId, patch);
+    state.user.email   = patch.email;
+    state.user.telefon = patch.telefon;
+    closeSheet();
+    toast('Kontaktdaten aktualisiert','success');
+    render(true);
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'warn');
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+  return false;
 }
 
 function openBankModal() {
@@ -1869,10 +1909,23 @@ function openBankModal() {
     </div>
   `);
 }
-function saveBank(ev) {
+async function saveBank(ev) {
   ev.preventDefault();
-  state.user.iban = ev.target.iban.value;
-  closeSheet(); toast('IBAN aktualisiert','success'); render(true); return false;
+  const f = ev.target;
+  const patch = { iban: f.iban.value };
+  const btn = f.querySelector('button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  try {
+    await api.updateVersicherter(state.aktiveVersicherterId, patch);
+    state.user.iban = patch.iban;
+    closeSheet();
+    toast('IBAN aktualisiert','success');
+    render(true);
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'warn');
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+  return false;
 }
 
 function openFamilieModal() {
@@ -1902,18 +1955,28 @@ function openFamilieModal() {
     </div>
   `);
 }
-function saveFamilienmitglied(ev) {
+async function saveFamilienmitglied(ev) {
   ev.preventDefault();
   const f = ev.target;
-  const parts = f.name.value.trim().split(' ');
-  const avatar = (parts[0]?.[0]||'') + (parts[parts.length-1]?.[0]||'');
-  state.familie.push({
-    id: 'f' + Date.now().toString(36),
-    rolle: f.rolle.value, name: f.name.value, geburt: f.geburt.value,
-    status: 'Familienversichert (in Prüfung)',
-    avatar: avatar.toUpperCase()
-  });
-  closeSheet(); toast('Familienmitglied hinzugefügt','success'); render(true); return false;
+  const btn = f.querySelector('button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  try {
+    await api.addFamilie({
+      versicherter_id: state.aktiveVersicherterId,
+      name: f.name.value,
+      rolle: f.rolle.value,
+      geburtsdatum: deToISO(f.geburt.value) || null,
+      status: 'Familienversichert (in Prüfung)'
+    });
+    await ladeAllesFuerVersicherten(state.aktiveVersicherterId);
+    closeSheet();
+    toast('Familienmitglied hinzugefügt','success');
+    render(true);
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'warn');
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+  return false;
 }
 
 function openBonusheft() {
@@ -2055,6 +2118,7 @@ async function wechsleVersicherter(id) {
   $('#versSwitcherPop').classList.add('hidden');
   showLoadingOverlay(true);
   await ladeAllesFuerVersicherten(id);
+  setupRealtime();
   showLoadingOverlay(false);
   state.activeTab = 'home';
   $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'home'));
@@ -2089,6 +2153,64 @@ function showLoadingOverlay(show) {
 }
 
 /* ---------- Render orchestrator ---------- */
+let realtimeChannel = null;
+let realtimeReloadTimer = null;
+
+function setupRealtime() {
+  if (realtimeChannel) {
+    sb.removeChannel(realtimeChannel);
+  }
+  const vid = state.aktiveVersicherterId;
+  realtimeChannel = sb.channel('musterkasse-app-' + vid);
+
+  // Auf Tabellen horchen, die den aktuellen Versicherten betreffen könnten
+  ['mk_antraege','mk_antrag_timeline','mk_nachrichten','mk_au_uploads','mk_familienmitglieder','mk_versicherte']
+    .forEach(table => {
+      realtimeChannel.on('postgres_changes',
+        { event: '*', schema: 'public', table },
+        payload => {
+          // Nur neu laden, wenn es den aktuellen Versicherten betrifft (falls payload Info hat)
+          const rec = payload.new || payload.old || {};
+          // Timeline-Events haben keinen versicherter_id, aber antrag_id -> immer reagieren
+          // Alle anderen: nur wenn versicherter_id passt
+          if (rec.versicherter_id && rec.versicherter_id !== vid && table !== 'mk_antrag_timeline') return;
+          scheduleReload();
+        }
+      );
+    });
+
+  realtimeChannel.subscribe(status => {
+    console.log('[Realtime App]', status);
+  });
+}
+
+function scheduleReload() {
+  clearTimeout(realtimeReloadTimer);
+  realtimeReloadTimer = setTimeout(async () => {
+    try {
+      showRealtimePulse();
+      await ladeAllesFuerVersicherten(state.aktiveVersicherterId);
+      render(true); // scroll behalten
+    } catch (e) { console.warn('Realtime-Reload fehlgeschlagen:', e); }
+  }, 300);
+}
+
+function showRealtimePulse() {
+  const existing = document.getElementById('rtPulse');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'rtPulse';
+  el.style.cssText = 'position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:75;background:var(--sage-600);color:#fff;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:99px;box-shadow:0 4px 12px -4px rgba(0,0,0,.2);animation:pulse-in .2s ease-out;';
+  el.textContent = '● Live-Update';
+  document.querySelector('#app').appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity .3s, transform .3s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-50%) translateY(-4px)';
+    setTimeout(() => el.remove(), 300);
+  }, 1800);
+}
+
 function render(keepScroll=false) {
   const c = $('#content');
   const prevScroll = c.scrollTop;
@@ -2155,6 +2277,7 @@ async function init() {
     const max = state.versicherteList.find(v => v.id === state.aktiveVersicherterId);
     const startId = max ? max.id : state.versicherteList[0].id;
     await ladeAllesFuerVersicherten(startId);
+    setupRealtime();
     updateUserHeader();
     render();
   } catch (e) {
