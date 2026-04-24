@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MusterKasse – Ihre Online-Geschäftsstelle</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -389,6 +390,53 @@
     overflow: hidden;
     animation: pop-in .18s ease-out;
   }
+
+  /* Versicherten-Switcher-Popover */
+  .vers-switcher-pop {
+    position: absolute;
+    top: 100px; left: 16px; z-index: 65;
+    width: 300px; max-height: 400px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 16px 40px -10px rgba(12,21,33,.28), 0 0 0 1px var(--ink-200);
+    overflow: hidden;
+    animation: pop-in .18s ease-out;
+  }
+  .vers-switcher-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    width: 100%;
+    text-align: left;
+    transition: background .15s ease;
+    border-bottom: 1px solid var(--ink-100);
+  }
+  .vers-switcher-item:hover { background: var(--ink-50); }
+  .vers-switcher-item:last-child { border-bottom: none; }
+  .vers-switcher-item.active { background: var(--brand-50); }
+  .vers-switcher-item .mini-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: #fff;
+    flex: 0 0 auto;
+  }
+
+  /* Loading-Overlay */
+  .loading-overlay {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(4px);
+    z-index: 90;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px;
+    animation: fade-in .2s ease;
+  }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--ink-200);
+    border-top-color: var(--brand-600);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
   @keyframes pop-in {
     from { opacity: 0; transform: translateY(-6px) scale(.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }
@@ -439,10 +487,15 @@
   <!-- App header -->
   <header class="app-header">
     <div class="flex items-start justify-between">
-      <div>
-        <div class="text-[11.5px] text-[var(--ink-500)] font-medium tracking-wide uppercase">Guten Tag</div>
-        <h1 class="serif text-[26px] leading-tight mt-0.5">Max <span class="italic text-[var(--brand-700)]">Mustermann</span></h1>
-      </div>
+      <button id="userSwitcher" onclick="toggleVersSwitcher()" class="flex items-start gap-2 text-left group">
+        <div>
+          <div class="text-[11.5px] text-[var(--ink-500)] font-medium tracking-wide uppercase">Guten Tag</div>
+          <h1 class="serif text-[26px] leading-tight mt-0.5 flex items-center gap-1.5">
+            <span id="userName">Max <span class="italic text-[var(--brand-700)]">Mustermann</span></span>
+            <i data-lucide="chevron-down" class="w-5 h-5 text-[var(--ink-400)] group-hover:text-[var(--brand-700)] transition"></i>
+          </h1>
+        </div>
+      </button>
       <button id="notifBtn" class="relative w-10 h-10 rounded-full bg-[var(--ink-100)] hover:bg-[var(--ink-200)] flex items-center justify-center transition-colors" aria-label="Benachrichtigungen">
         <i data-lucide="bell" class="w-5 h-5 text-[var(--ink-700)]"></i>
         <span id="notifBadge" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-[var(--rose-600)] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">3</span>
@@ -471,6 +524,15 @@
       <button id="closeNotif" class="text-[var(--ink-500)] hover:text-[var(--ink-900)]"><i data-lucide="x" class="w-4 h-4"></i></button>
     </div>
     <div class="overflow-y-auto" style="max-height: 300px;" id="notifList"></div>
+  </div>
+
+  <!-- Versicherten-Switcher (für Demo) -->
+  <div id="versSwitcherPop" class="vers-switcher-pop hidden">
+    <div class="px-4 py-3 border-b border-[var(--ink-100)]">
+      <div class="font-semibold text-[14px]">Versicherter wechseln</div>
+      <div class="text-[11px] text-[var(--ink-500)] mt-0.5">Demo-Funktion</div>
+    </div>
+    <div class="overflow-y-auto" style="max-height: 340px;" id="versSwitcherList"></div>
   </div>
 
   <!-- Main views -->
@@ -594,94 +656,139 @@ window.lucide = {
    MusterKasse – Prototyp State & Logic
    ========================================================= */
 
+/* =========================================================
+   SUPABASE-VERBINDUNG
+   ========================================================= */
+const SUPABASE_URL      = 'https://supabase.physiques-unlimited.de';
+const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3NDk1NTc2MCwiZXhwIjo0OTMwNjI5MzYwLCJyb2xlIjoiYW5vbiJ9.oOYnXD3j3A2VTIaFN9Ratq1X-rhGgTw8blBBRFkuP50';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Tabellennamen (alle mit mk_-Präfix)
+const T = {
+  versicherte:    'mk_versicherte',
+  familie:        'mk_familienmitglieder',
+  antraege:       'mk_antraege',
+  timeline:       'mk_antrag_timeline',
+  nachrichten:    'mk_nachrichten',
+  au_uploads:     'mk_au_uploads'
+};
+const BUCKET = 'mk-au-uploads';
+
+/* ---------- Data-Layer: alle Supabase-Calls an einer Stelle ---------- */
+const api = {
+  async listVersicherte() {
+    const { data, error } = await sb.from(T.versicherte).select('*').order('nachname');
+    if (error) throw error;
+    return data;
+  },
+
+  async loadVersicherter(id) {
+    const { data, error } = await sb.from(T.versicherte).select('*').eq('id', id).single();
+    if (error) throw error;
+    return data;
+  },
+
+  async loadFamilie(versicherter_id) {
+    const { data, error } = await sb.from(T.familie)
+      .select('*').eq('versicherter_id', versicherter_id).order('geburtsdatum');
+    if (error) throw error;
+    return data;
+  },
+
+  async loadAntraege(versicherter_id) {
+    const { data, error } = await sb.from(T.antraege)
+      .select('*').eq('versicherter_id', versicherter_id).order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async loadTimeline(antrag_id) {
+    const { data, error } = await sb.from(T.timeline)
+      .select('*').eq('antrag_id', antrag_id).order('sortierung');
+    if (error) throw error;
+    return data;
+  },
+
+  async loadNachrichten(versicherter_id) {
+    const { data, error } = await sb.from(T.nachrichten)
+      .select('*').eq('versicherter_id', versicherter_id).order('datum', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async insertAntrag({ versicherter_id, typ, betreff, beschreibung }) {
+    const heute = new Date().toISOString().slice(0,10);
+    const { data: antrag, error } = await sb.from(T.antraege).insert({
+      versicherter_id, typ, betreff, beschreibung,
+      eingereicht_am: heute, status: 'Eingegangen'
+    }).select().single();
+    if (error) throw error;
+
+    // Default-Timeline anlegen
+    const heuteDE = heute.split('-').reverse().join('.');
+    await sb.from(T.timeline).insert([
+      { antrag_id: antrag.id, datum: heuteDE, text: 'Antrag eingegangen',       status: 'current', sortierung: 1 },
+      { antrag_id: antrag.id, datum: '—',     text: 'Unterlagen werden geprüft', status: 'pending', sortierung: 2 },
+      { antrag_id: antrag.id, datum: '—',     text: 'Entscheidung & Rückmeldung',status: 'pending', sortierung: 3 }
+    ]);
+    return antrag;
+  },
+
+  async markNachrichtGelesen(id) {
+    const { error } = await sb.from(T.nachrichten).update({ gelesen: true }).eq('id', id);
+    if (error) throw error;
+  },
+
+  async uploadAU({ versicherter_id, person_name, au_beginn, au_ende, file }) {
+    // Datei in Storage hochladen
+    const ext       = (file.name.split('.').pop() || 'bin').toLowerCase();
+    const safeName  = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const storage_pfad = `${versicherter_id}/${Date.now()}_${safeName}`;
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(storage_pfad, file, {
+      cacheControl: '3600', upsert: false, contentType: file.type || 'application/octet-stream'
+    });
+    if (upErr) throw upErr;
+
+    // Metadaten in DB
+    const { data, error } = await sb.from(T.au_uploads).insert({
+      versicherter_id, person_name,
+      au_beginn: au_beginn || null,
+      au_ende:   au_ende   || null,
+      dateiname: file.name,
+      storage_pfad,
+      datei_groesse: file.size,
+      mime_type: file.type
+    }).select().single();
+    if (error) throw error;
+    return data;
+  }
+};
+
+/* Datum von DE "TT.MM.JJJJ" zu ISO "JJJJ-MM-TT" */
+function deToISO(s) {
+  if (!s) return null;
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+}
+/* Datum von ISO zu DE */
+function isoToDE(s) {
+  if (!s) return '';
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : s;
+}
+
+
 const state = {
   activeTab: 'home',
-  user: {
-    anrede: 'Herr',
-    vorname: 'Max',
-    nachname: 'Mustermann',
-    geburtsdatum: '14.03.1986',
-    versichertennummer: 'A123456789',
-    kassennummer: '108310400',
-    gueltigBis: '12/2029',
-    adresse: {
-      strasse: 'Lindenstraße 27',
-      plz: '45127',
-      ort: 'Essen'
-    },
-    email: 'max.mustermann@mail.de',
-    telefon: '+49 201 5543210',
-    iban: 'DE89 3704 0044 0532 0130 00',
-    twoFA: true,
-    sprache: 'Deutsch',
-    benachrichtigungen: true
-  },
-  familie: [
-    { id: 'f1', rolle: 'Stammversicherter', name: 'Max Mustermann', geburt: '14.03.1986', status: 'Pflichtversichert', avatar: 'MM' },
-    { id: 'f2', rolle: 'Ehepartnerin',       name: 'Julia Mustermann', geburt: '02.07.1988', status: 'Familienversichert', avatar: 'JM' },
-    { id: 'f3', rolle: 'Kind',               name: 'Lena Mustermann',  geburt: '19.09.2016', status: 'Familienversichert', avatar: 'LM' },
-    { id: 'f4', rolle: 'Kind',               name: 'Finn Mustermann',  geburt: '04.02.2020', status: 'Familienversichert', avatar: 'FM' }
-  ],
-  antraege: [
-    {
-      id: 'a1', typ: 'Kostenerstattung', betreff: 'Brille – Rechnung 04/2026',
-      datum: '18.04.2026', status: 'In Bearbeitung',
-      timeline: [
-        { t: '12.04.2026', text: 'Antrag eingegangen', done: true },
-        { t: '15.04.2026', text: 'Unterlagen geprüft',  done: true },
-        { t: '18.04.2026', text: 'In fachlicher Prüfung', current: true },
-        { t: '—',          text: 'Abschluss & Auszahlung' }
-      ]
-    },
-    {
-      id: 'a2', typ: 'Zahnreinigung-Zuschuss', betreff: 'PZR bei Dr. Weber',
-      datum: '02.04.2026', status: 'Erledigt',
-      timeline: [
-        { t: '28.03.2026', text: 'Antrag eingegangen', done: true },
-        { t: '30.03.2026', text: 'Geprüft & bewilligt', done: true },
-        { t: '02.04.2026', text: 'Zuschuss überwiesen (80 €)', done: true }
-      ]
-    },
-    {
-      id: 'a3', typ: 'Haushaltshilfe', betreff: 'Haushaltshilfe nach OP',
-      datum: '22.04.2026', status: 'Eingegangen',
-      timeline: [
-        { t: '22.04.2026', text: 'Antrag eingegangen', current: true },
-        { t: '—',          text: 'Unterlagen werden geprüft' },
-        { t: '—',          text: 'Entscheidung & Rückmeldung' }
-      ]
-    }
-  ],
-  postfach: [
-    {
-      id: 'n1', betreff: 'Bonuszahlung bestätigt',
-      absender: 'MusterKasse · Bonusprogramm',
-      datum: '21.04.2026', gelesen: false, wichtig: true,
-      text: 'Sehr geehrter Herr Mustermann,\n\nwir freuen uns, Ihnen mitteilen zu können, dass Ihre Bonuszahlung in Höhe von 75,00 € heute auf Ihr hinterlegtes Konto überwiesen wurde.\n\nMit freundlichen Grüßen\nIhre MusterKasse',
-      anhang: 'Bonusbescheid_2026.pdf'
-    },
-    {
-      id: 'n2', betreff: 'Ihr Antrag auf Kostenerstattung – Rückfrage',
-      absender: 'MusterKasse · Sachbearbeitung',
-      datum: '19.04.2026', gelesen: false, wichtig: false,
-      text: 'Sehr geehrter Herr Mustermann,\n\nzu Ihrem Antrag auf Kostenerstattung vom 12.04.2026 benötigen wir noch eine Kopie der Verordnung. Bitte reichen Sie diese über die App ein.\n\nIhre MusterKasse',
-      anhang: null
-    },
-    {
-      id: 'n3', betreff: 'Mitgliedsbescheinigung verfügbar',
-      absender: 'MusterKasse · Mitgliederservice',
-      datum: '10.04.2026', gelesen: true, wichtig: false,
-      text: 'Ihre angeforderte Mitgliedsbescheinigung liegt als PDF im Anhang bereit.',
-      anhang: 'Mitgliedsbescheinigung_2026.pdf'
-    },
-    {
-      id: 'n4', betreff: 'Neuer Bonusheft-Eintrag',
-      absender: 'MusterKasse · Bonusprogramm',
-      datum: '28.03.2026', gelesen: true, wichtig: false,
-      text: 'Ihr Vorsorgetermin wurde erfolgreich im Bonusheft eingetragen.',
-      anhang: null
-    }
-  ],
+  loading: true,           // Lade-State für's erste Rendern
+  versicherteList: [],     // alle 4 Versicherten aus DB
+  aktiveVersicherterId: '11111111-1111-1111-1111-111111111111', // Max als Default
+  user: null,              // aktuell geladener Versicherter (wird aus DB befüllt)
+  familie: [],             // aus DB
+  antraege: [],            // aus DB
+  postfach: [],            // aus DB
   notifications: [
     { id: 'x1', titel: 'Rückfrage zu Ihrem Antrag', sub: 'Postfach · vor 2 Tagen', ico: 'mail' },
     { id: 'x2', titel: 'Bonuszahlung 75,00 € überwiesen', sub: 'Konto · vor 1 Tag', ico: 'piggy-bank' },
@@ -696,9 +803,104 @@ const state = {
     postFilter: 'alle',     // alle | ungelesen | wichtig
     ibanSichtbar: false,
     versNrSichtbar: false,
-    notifOffen: false
+    notifOffen: false,
+    versSwitcherOffen: false
   }
 };
+
+/* ---------- Daten aus Supabase in den State laden ---------- */
+async function ladeAllesFuerVersicherten(id) {
+  state.loading = true;
+  try {
+    const [v, fam, antraegeRaw, nachrichten] = await Promise.all([
+      api.loadVersicherter(id),
+      api.loadFamilie(id),
+      api.loadAntraege(id),
+      api.loadNachrichten(id)
+    ]);
+
+    // User-Struktur in das Format bringen, das die App erwartet
+    state.user = {
+      id:                  v.id,
+      anrede:              v.anrede,
+      vorname:             v.vorname,
+      nachname:            v.nachname,
+      geburtsdatum:        isoToDE(v.geburtsdatum),
+      versichertennummer:  v.versichertennummer,
+      kassennummer:        v.kassennummer,
+      gueltigBis:          v.gueltig_bis,
+      adresse: { strasse: v.strasse || '', plz: v.plz || '', ort: v.ort || '' },
+      email:               v.email || '',
+      telefon:             v.telefon || '',
+      iban:                v.iban || '',
+      mitgliedSeit:        v.mitglied_seit,
+      twoFA: true, sprache: 'Deutsch', benachrichtigungen: true
+    };
+
+    // Familie: Stammversicherter + Familienmitglieder
+    const initialen = (name) => {
+      const p = name.trim().split(' ');
+      return (p[0]?.[0] || '') + (p[p.length-1]?.[0] || '');
+    };
+    state.familie = [
+      {
+        id: 'stamm-' + v.id,
+        rolle: 'Stammversicherter',
+        name: `${v.vorname} ${v.nachname}`,
+        geburt: isoToDE(v.geburtsdatum),
+        status: 'Pflichtversichert',
+        avatar: initialen(`${v.vorname} ${v.nachname}`).toUpperCase()
+      },
+      ...fam.map(f => ({
+        id: f.id,
+        rolle: f.rolle,
+        name: f.name,
+        geburt: isoToDE(f.geburtsdatum),
+        status: f.status,
+        avatar: initialen(f.name).toUpperCase()
+      }))
+    ];
+
+    // Anträge mit Timeline parallel laden
+    const antraegeMitTimeline = await Promise.all(antraegeRaw.map(async a => {
+      const tl = await api.loadTimeline(a.id);
+      return {
+        id: a.id,
+        typ: a.typ,
+        betreff: a.betreff,
+        datum: isoToDE(a.eingereicht_am),
+        status: a.status,
+        timeline: tl.map(t => ({
+          t: t.datum,
+          text: t.text,
+          done:    t.status === 'done',
+          current: t.status === 'current'
+        }))
+      };
+    }));
+    state.antraege = antraegeMitTimeline;
+
+    // Nachrichten
+    state.postfach = nachrichten.map(n => ({
+      id: n.id,
+      betreff: n.betreff,
+      absender: n.absender,
+      datum: isoToDE(n.datum),
+      gelesen: n.gelesen,
+      wichtig: n.wichtig,
+      text: n.text,
+      anhang: n.anhang_name
+    }));
+
+    state.aktiveVersicherterId = id;
+  } catch (e) {
+    console.error('Fehler beim Laden:', e);
+    toast('Daten konnten nicht geladen werden: ' + (e.message || e), 'warn');
+  } finally {
+    state.loading = false;
+  }
+}
+
 
 /* ---------- Utility ---------- */
 const $ = (sel, root=document) => root.querySelector(sel);
@@ -1364,7 +1566,7 @@ function openAUUploadModal() {
         </div>
         <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-      <form class="space-y-3 mt-4" onsubmit="return submitAU(event)">
+      <form id="auForm" class="space-y-3 mt-4" onsubmit="return submitAU(event)">
         <div>
           <label class="lbl">Für wen?</label>
           <select class="inp" name="person">
@@ -1377,26 +1579,65 @@ function openAUUploadModal() {
         </div>
         <div>
           <label class="lbl">Bescheinigung (Foto oder PDF)</label>
-          <div class="border-2 border-dashed border-[var(--ink-200)] rounded-xl p-5 text-center bg-[var(--ink-50)]">
+          <label class="block border-2 border-dashed border-[var(--ink-200)] rounded-xl p-5 text-center bg-[var(--ink-50)] cursor-pointer hover:border-[var(--brand-500)] transition" id="auDropzone">
+            <input type="file" name="datei" id="auFile" accept="image/*,application/pdf" class="hidden" required onchange="onAUFileSelected(event)">
             <i data-lucide="upload-cloud" class="w-6 h-6 mx-auto text-[var(--ink-400)]"></i>
-            <div class="text-[12.5px] mt-1.5 text-[var(--ink-700)] font-medium">Dateien hier ablegen</div>
-            <div class="text-[11px] text-[var(--ink-500)]">oder tippen zum Auswählen</div>
-          </div>
+            <div class="text-[12.5px] mt-1.5 text-[var(--ink-700)] font-medium" id="auFileLabel">Datei auswählen</div>
+            <div class="text-[11px] text-[var(--ink-500)]">Bild oder PDF</div>
+          </label>
         </div>
         <div class="pt-2 flex gap-2">
           <button type="button" class="btn btn-ghost flex-1" onclick="closeSheet()">Abbrechen</button>
           <button type="submit" class="btn btn-primary flex-1">
-            <i data-lucide="send" class="w-4 h-4"></i> Einreichen
+            <i data-lucide="send" class="w-4 h-4"></i> Hochladen
           </button>
         </div>
       </form>
     </div>
   `);
 }
-function submitAU(ev) {
+
+function onAUFileSelected(ev) {
+  const file = ev.target.files?.[0];
+  if (!file) return;
+  const lbl = document.getElementById('auFileLabel');
+  const kb = (file.size / 1024).toFixed(0);
+  if (lbl) lbl.textContent = `${file.name} (${kb} KB)`;
+}
+
+async function submitAU(ev) {
   ev.preventDefault();
-  closeSheet();
-  toast('AU-Bescheinigung übermittelt','success');
+  const form = ev.target;
+  const file = form.datei.files?.[0];
+  if (!file) { toast('Bitte eine Datei auswählen','warn'); return false; }
+
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.6';
+    submitBtn.innerHTML = '<span>Lädt hoch …</span>';
+  }
+
+  try {
+    await api.uploadAU({
+      versicherter_id: state.aktiveVersicherterId,
+      person_name: form.person.value,
+      au_beginn: deToISO(form.von.value),
+      au_ende:   deToISO(form.bis.value),
+      file
+    });
+    closeSheet();
+    toast('AU-Bescheinigung übermittelt','success');
+  } catch (e) {
+    console.error(e);
+    toast('Upload fehlgeschlagen: ' + (e.message || e), 'warn');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = '';
+      submitBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Hochladen';
+      lucide.createIcons();
+    }
+  }
   return false;
 }
 
@@ -1446,34 +1687,58 @@ function openAntragFormular(typ) {
   }, 50);
 }
 
-function submitAntrag(ev) {
+async function submitAntrag(ev) {
   ev.preventDefault();
   const form = ev.target;
   const typ      = form.dataset.typ || 'Sonstiges';
   const betreff  = form.betreff.value.trim()  || '(ohne Betreff)';
-  const datum    = form.datum.value.trim()    || new Date().toLocaleDateString('de-DE');
 
-  const newId = 'a' + (Date.now().toString(36));
-  state.antraege.unshift({
-    id: newId, typ: typ, betreff, datum,
-    status: 'Eingegangen',
-    timeline: [
-      { t: datum, text: 'Antrag eingegangen', current: true },
-      { t: '—',   text: 'Unterlagen werden geprüft' },
-      { t: '—',   text: 'Entscheidung & Rückmeldung' }
-    ]
-  });
-  closeSheet();
-  toast('Antrag erfolgreich eingereicht', 'success');
-  state.activeTab = 'antraege';
-  render();
+  // Submit-Button deaktivieren, damit man nicht doppelt klickt
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.6'; }
+
+  try {
+    const antrag = await api.insertAntrag({
+      versicherter_id: state.aktiveVersicherterId,
+      typ, betreff,
+      beschreibung: form.beschreibung?.value || null
+    });
+
+    // Neu geladenen Antrag direkt in den State schieben (ohne Reload)
+    state.antraege.unshift({
+      id: antrag.id,
+      typ: antrag.typ,
+      betreff: antrag.betreff,
+      datum: isoToDE(antrag.eingereicht_am),
+      status: 'Eingegangen',
+      timeline: [
+        { t: isoToDE(antrag.eingereicht_am), text: 'Antrag eingegangen', current: true },
+        { t: '—', text: 'Unterlagen werden geprüft' },
+        { t: '—', text: 'Entscheidung & Rückmeldung' }
+      ]
+    });
+
+    closeSheet();
+    toast('Antrag erfolgreich eingereicht', 'success');
+    state.activeTab = 'antraege';
+    render();
+  } catch (e) {
+    console.error(e);
+    toast('Fehler beim Einreichen: ' + (e.message || e), 'warn');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = ''; }
+  }
   return false;
 }
 
 function openNachricht(id) {
   const n = state.postfach.find(x => x.id === id);
   if (!n) return;
-  if (!n.gelesen) { n.gelesen = true; updateBadges(); }
+  if (!n.gelesen) {
+    n.gelesen = true;
+    updateBadges();
+    // persistieren (feuern & vergessen, UI bleibt responsiv)
+    api.markNachrichtGelesen(id).catch(e => console.warn('Konnte Nachricht nicht als gelesen markieren:', e));
+  }
 
   openSheet(`
     <div class="px-5 pt-3 pb-5 overflow-y-auto">
@@ -1757,6 +2022,72 @@ function switchTab(tab) {
   render();
 }
 
+/* ---------- Versicherten-Switcher ---------- */
+function toggleVersSwitcher() {
+  state.ui.versSwitcherOffen = !state.ui.versSwitcherOffen;
+  const pop = $('#versSwitcherPop');
+  if (state.ui.versSwitcherOffen) {
+    pop.classList.remove('hidden');
+    const palettes = [['#1B5FB5','#0A1F3D'],['#B84454','#7A1F2C'],['#B4770E','#6B4308'],['#3F7D5A','#1F4A32']];
+    $('#versSwitcherList').innerHTML = state.versicherteList.map((v, idx) => {
+      const colors = palettes[idx % palettes.length];
+      const isActive = v.id === state.aktiveVersicherterId;
+      const initials = (v.vorname[0] || '') + (v.nachname[0] || '');
+      return `
+        <button class="vers-switcher-item ${isActive?'active':''}" onclick="wechsleVersicherter('${v.id}')">
+          <div class="mini-avatar" style="background: linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%);">${initials}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[13.5px] font-semibold truncate">${escapeHTML(v.vorname + ' ' + v.nachname)}</div>
+            <div class="text-[11px] text-[var(--ink-500)] truncate num-mask">${escapeHTML(v.versichertennummer)}</div>
+          </div>
+          ${isActive ? '<i data-lucide="check" class="w-4 h-4 text-[var(--brand-700)]"></i>' : ''}
+        </button>`;
+    }).join('');
+    lucide.createIcons();
+  } else {
+    pop.classList.add('hidden');
+  }
+}
+
+async function wechsleVersicherter(id) {
+  if (id === state.aktiveVersicherterId) { toggleVersSwitcher(); return; }
+  state.ui.versSwitcherOffen = false;
+  $('#versSwitcherPop').classList.add('hidden');
+  showLoadingOverlay(true);
+  await ladeAllesFuerVersicherten(id);
+  showLoadingOverlay(false);
+  state.activeTab = 'home';
+  $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'home'));
+  updateUserHeader();
+  render();
+  toast(`Gewechselt zu ${state.user.vorname} ${state.user.nachname}`, 'info');
+}
+
+function updateUserHeader() {
+  const el = $('#userName');
+  if (el && state.user) {
+    el.innerHTML = `${escapeHTML(state.user.vorname)} <span class="italic text-[var(--brand-700)]">${escapeHTML(state.user.nachname)}</span>`;
+  }
+}
+
+function showLoadingOverlay(show) {
+  let ov = $('#loadingOverlay');
+  if (show) {
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'loadingOverlay';
+      ov.className = 'loading-overlay';
+      ov.innerHTML = `
+        <div class="loading-spinner"></div>
+        <div class="text-[13px] text-[var(--ink-700)] font-medium">Daten werden geladen …</div>
+      `;
+      $('#app').appendChild(ov);
+    }
+  } else {
+    if (ov) ov.remove();
+  }
+}
+
 /* ---------- Render orchestrator ---------- */
 function render(keepScroll=false) {
   const c = $('#content');
@@ -1776,7 +2107,7 @@ function render(keepScroll=false) {
 }
 
 /* ---------- Init ---------- */
-function init() {
+async function init() {
   // Clock
   const setClock = () => {
     const d = new Date();
@@ -1790,19 +2121,55 @@ function init() {
   // Notification
   $('#notifBtn').addEventListener('click', toggleNotifPop);
 
-  // Close popover on outside click
+  // Close popovers on outside click
   document.addEventListener('click', (e) => {
-    if (!state.ui.notifOffen) return;
-    const pop = $('#notifPop');
-    const btn = $('#notifBtn');
-    if (!pop.contains(e.target) && !btn.contains(e.target)) {
-      state.ui.notifOffen = false;
-      pop.classList.add('hidden');
+    if (state.ui.notifOffen) {
+      const pop = $('#notifPop');
+      const btn = $('#notifBtn');
+      if (!pop.contains(e.target) && !btn.contains(e.target)) {
+        state.ui.notifOffen = false;
+        pop.classList.add('hidden');
+      }
+    }
+    if (state.ui.versSwitcherOffen) {
+      const pop = $('#versSwitcherPop');
+      const btn = $('#userSwitcher');
+      if (!pop.contains(e.target) && !btn.contains(e.target)) {
+        state.ui.versSwitcherOffen = false;
+        pop.classList.add('hidden');
+      }
     }
   });
 
-  render();
+  // Icons für initiales Markup rendern
   lucide.createIcons();
+
+  // Daten laden
+  showLoadingOverlay(true);
+  try {
+    state.versicherteList = await api.listVersicherte();
+    if (state.versicherteList.length === 0) {
+      throw new Error('Keine Versicherten gefunden. Läuft das Seed-SQL?');
+    }
+    // Max als Default, falls vorhanden, sonst der Erste
+    const max = state.versicherteList.find(v => v.id === state.aktiveVersicherterId);
+    const startId = max ? max.id : state.versicherteList[0].id;
+    await ladeAllesFuerVersicherten(startId);
+    updateUserHeader();
+    render();
+  } catch (e) {
+    console.error(e);
+    $('#content').innerHTML = `
+      <div class="p-8 text-center">
+        <i data-lucide="triangle-alert" class="w-10 h-10 mx-auto text-[var(--rose-600)]"></i>
+        <div class="mt-3 font-semibold text-[15px]">Verbindung fehlgeschlagen</div>
+        <div class="mt-1 text-[12.5px] text-[var(--ink-500)]">${escapeHTML(e.message || String(e))}</div>
+        <div class="mt-3 text-[11px] text-[var(--ink-400)]">Prüfen Sie die Supabase-URL, den anon-Key und ob das SQL-Schema ausgeführt wurde.</div>
+      </div>`;
+    lucide.createIcons();
+  } finally {
+    showLoadingOverlay(false);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
