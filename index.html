@@ -2,11 +2,17 @@
 <!--
   ====================================================================
   MusterKasse · Versicherten-App
-  Version: v0.2.2
+  Version: v0.3.0
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.3.0 (2026-04-24) · Zwei-Wege-Kommunikation
+    + Antworten auf Nachrichten möglich
+    + Antwort-Compose-Sheet mit Original-Zitat
+    + Antworten werden der Kasse als "eingehend" übermittelt
+    + Thread-Verlauf wird per thread_id verknüpft
+
   v0.2.2 (2026-04-24)
     ~ eGK-Karte reagiert jetzt auf Branding-Farben (Bug: hartcodierter Gradient)
     ~ Vorsorge-Widget: dekorative SVG-Grafik entfernt (war störend)
@@ -28,11 +34,11 @@
     + initialen() robust gegen leere Namen gemacht
   ====================================================================
 -->
-<html lang="de" data-app-version="0.2.2">
+<html lang="de" data-app-version="0.3.0">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MusterKasse · v0.2.2</title>
+<title>MusterKasse · v0.3.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -693,8 +699,18 @@ window.lucide = {
 /* =========================================================
    MusterKasse – Versicherten-App
    ========================================================= */
-const APP_VERSION = '0.2.2';
+const APP_VERSION = '0.3.0';
 const APP_CHANGELOG = [
+  {
+    version: '0.3.0',
+    date: '24.04.2026',
+    changes: [
+      'Antworten auf Nachrichten möglich',
+      'Antwort-Compose-Sheet mit Original-Zitat',
+      'Antworten werden der Kasse übermittelt',
+      'Konversationen via thread_id verknüpft'
+    ]
+  },
   {
     version: '0.2.2',
     date: '24.04.2026',
@@ -908,6 +924,20 @@ const api = {
 
   async addFamilie({ versicherter_id, name, rolle, geburtsdatum, status }) {
     const { error } = await sb.from(T.familie).insert({ versicherter_id, name, rolle, geburtsdatum, status });
+    if (error) throw error;
+  },
+
+  async sendAntwort({ versicherter_id, betreff, absender, text, thread_id }) {
+    const heute = new Date().toISOString().slice(0,10);
+    const { error } = await sb.from(T.nachrichten).insert({
+      versicherter_id, betreff, absender, text,
+      datum: heute,
+      gelesen: false,
+      wichtig: false,
+      anhang_name: null,
+      richtung: 'eingehend',
+      thread_id: thread_id || null
+    });
     if (error) throw error;
   },
 
@@ -1950,13 +1980,91 @@ function openNachricht(id) {
 
       <div class="mt-5 grid grid-cols-2 gap-2">
         <button class="btn btn-ghost" onclick="closeSheet()">Schließen</button>
-        <button class="btn btn-primary" onclick="toast('Antwort gesendet','success'); closeSheet()">
+        <button class="btn btn-primary" onclick="openAntwortSheet('${n.id}')">
           <i data-lucide="reply" class="w-4 h-4"></i> Antworten
         </button>
       </div>
     </div>
   `);
   render(true);
+}
+
+/* Antwort-Compose-Sheet */
+function openAntwortSheet(originalId) {
+  const orig = state.postfach.find(n => n.id === originalId);
+  if (!orig) return;
+  const betreffVorschlag = orig.betreff.startsWith('Re:') ? orig.betreff : `Re: ${orig.betreff}`;
+
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div class="pr-4">
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Antwort</div>
+          <div class="serif text-[20px] leading-tight mt-0.5">${escapeHTML(betreffVorschlag)}</div>
+          <div class="text-[12px] text-[var(--ink-500)] mt-1">An: ${escapeHTML(orig.absender)}</div>
+        </div>
+        <button onclick="openNachricht('${originalId}')" class="p-2" title="Zurück zur Nachricht">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="divider my-3"></div>
+
+      <!-- Original als Zitat -->
+      <div class="mb-3 p-3 rounded-lg bg-[var(--ink-50)] border-l-2 border-[var(--ink-300)]">
+        <div class="text-[10.5px] uppercase tracking-wider text-[var(--ink-500)] font-medium mb-1">Ihre Nachricht vom ${orig.datum}</div>
+        <div class="text-[12px] text-[var(--ink-600)] leading-snug line-clamp-3" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${escapeHTML(orig.text)}</div>
+      </div>
+
+      <form id="antwortForm" onsubmit="return submitAntwort(event, '${originalId}')">
+        <label class="block text-[12px] text-[var(--ink-700)] font-medium mb-1.5">Betreff</label>
+        <input class="inp mb-3" name="betreff" value="${escapeHTML(betreffVorschlag)}" required>
+
+        <label class="block text-[12px] text-[var(--ink-700)] font-medium mb-1.5">Ihre Antwort</label>
+        <textarea class="inp" name="text" rows="6" required placeholder="Sehr geehrte Damen und Herren,&#10;&#10;vielen Dank für Ihre Nachricht …" autofocus></textarea>
+
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <button type="button" class="btn btn-ghost" onclick="openNachricht('${originalId}')">Zurück</button>
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="send" class="w-4 h-4"></i> Senden
+          </button>
+        </div>
+      </form>
+    </div>
+  `);
+}
+
+async function submitAntwort(ev, originalId) {
+  ev.preventDefault();
+  const f = ev.target;
+  const betreff = f.betreff.value.trim();
+  const text = f.text.value.trim();
+  if (!text) { toast('Bitte eine Antwort eingeben','warn'); return false; }
+
+  const btn = f.querySelector('button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+
+  try {
+    const orig = state.postfach.find(n => n.id === originalId);
+    const threadId = orig?.thread_id || originalId;
+    const absender = `${state.user.vorname} ${state.user.nachname}`;
+    await api.sendAntwort({
+      versicherter_id: state.aktiveVersicherterId,
+      betreff,
+      absender,
+      text,
+      thread_id: threadId
+    });
+    closeSheet();
+    toast('Antwort gesendet','success');
+    // State neu laden, damit die Antwort in der Liste auftaucht
+    await ladeAllesFuerVersicherten(state.aktiveVersicherterId);
+    render(true);
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'warn');
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+  return false;
 }
 
 /* ---------- Profil Modals ---------- */
