@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MusterKasse · Admin</title>
+<title>NichtGanz-21c · Admin</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -612,7 +612,7 @@
       <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand-600),var(--brand-800));display:flex;align-items:center;justify-content:center;">
         <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><path d="M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z" fill="#fff"/></svg>
       </div>
-      <div class="text-[13px] font-semibold">MusterKasse · Admin</div>
+      <div class="text-[13px] font-semibold">NichtGanz-21c</div>
     </div>
     <div class="serif" style="font-size:26px;line-height:1.1;letter-spacing:-0.01em;">
       Zugang zur <em style="color:var(--brand-700)">Verwaltung</em>
@@ -640,7 +640,7 @@
         <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><path d="M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z" fill="#fff"/></svg>
       </div>
       <div>
-        <div class="sidebar-title">MusterKasse</div>
+        <div class="sidebar-title">NichtGanz-21c</div>
         <div class="sidebar-kicker">Admin</div>
       </div>
     </div>
@@ -680,11 +680,14 @@
     </nav>
 
     <div style="padding: 12px 10px; border-top: 1px solid var(--ink-150); margin-top: 14px;">
-      <div class="text-[10.5px] text-[var(--ink-400)] mb-1">Verbunden mit</div>
-      <div class="mono text-[11px] text-[var(--ink-700)] truncate" style="max-width: 210px;">supabase.physiques-unlimited.de</div>
-      <div class="flex items-center gap-1.5 mt-1.5">
+      <div class="text-[10.5px] text-[var(--ink-400)] mb-1 uppercase tracking-wider font-medium">Infrastruktur</div>
+      <div class="text-[12px] text-[var(--ink-800)] font-medium">physiques-unlimited.de</div>
+      <div class="text-[10.5px] text-[var(--ink-500)] mt-1 leading-snug">
+        Self-hosted Supabase (Postgres&nbsp;+&nbsp;PostgREST) auf dem VPS, verwaltet mit Coolify.
+      </div>
+      <div class="flex items-center gap-1.5 mt-2">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--sage-500);box-shadow:0 0 0 3px var(--sage-100);"></span>
-        <span class="text-[10.5px] text-[var(--sage-700)] font-medium">Online</span>
+        <span class="text-[10.5px] text-[var(--sage-700)] font-medium">Verbunden · Realtime aktiv</span>
       </div>
     </div>
   </aside>
@@ -992,6 +995,7 @@ async function boot() {
     bindNav();
     renderView();
     updateSidebarCounts();
+    setupRealtime();
   } catch (e) {
     console.error(e);
     $('#content').innerHTML = `
@@ -1006,6 +1010,44 @@ async function boot() {
         </div>
       </div>`;
   }
+}
+
+/* =========================================================
+   REALTIME
+   ========================================================= */
+let realtimeChannel = null;
+let realtimeReloadTimer = null;
+
+function setupRealtime() {
+  if (realtimeChannel) {
+    sb.removeChannel(realtimeChannel);
+  }
+  realtimeChannel = sb.channel('musterkasse-admin-live');
+
+  // Auf alle mk_-Tabellen horchen
+  ['mk_versicherte','mk_familienmitglieder','mk_antraege','mk_antrag_timeline','mk_nachrichten','mk_au_uploads']
+    .forEach(table => {
+      realtimeChannel.on('postgres_changes',
+        { event: '*', schema: 'public', table },
+        payload => handleRealtimeChange(table, payload)
+      );
+    });
+
+  realtimeChannel.subscribe(status => {
+    console.log('[Realtime]', status);
+  });
+}
+
+function handleRealtimeChange(table, payload) {
+  // Debounce: mehrere schnelle Updates zu einem Reload zusammenfassen
+  clearTimeout(realtimeReloadTimer);
+  realtimeReloadTimer = setTimeout(async () => {
+    try {
+      await api.loadAll();
+      renderView();
+      updateSidebarCounts();
+    } catch (e) { console.warn('Realtime-Reload fehlgeschlagen:', e); }
+  }, 250);
 }
 
 async function refreshAll() {
@@ -1239,6 +1281,7 @@ function renderVersicherte() {
         <h1 class="page-title"><em>Versicherte</em></h1>
         <p class="page-sub">${state.versicherte.length} Personen · Details und Aktionen</p>
       </div>
+      <button class="btn btn-primary" onclick="openNeuerVersicherterModal()">${iconSvg('plus',14)} Neuer Versicherter</button>
     </div>
 
     <div class="panel mt-7">
@@ -1308,7 +1351,10 @@ async function openVersicherterDrawer(id) {
           <div class="text-[12px] text-[var(--ink-500)] mono mt-0.5">${escapeHTML(v.versichertennummer)}</div>
         </div>
       </div>
-      <button class="icon-btn" onclick="closeDrawer()">${iconSvg('x',16)}</button>
+      <div class="flex items-center gap-1">
+        <button class="icon-btn" onclick="openVersicherterEdit('${v.id}')" title="Stammdaten bearbeiten">${iconSvg('edit',16)}</button>
+        <button class="icon-btn" onclick="closeDrawer()">${iconSvg('x',16)}</button>
+      </div>
     </div>
     <div class="drawer-body">
       <div class="panel">
@@ -1357,7 +1403,10 @@ async function openVersicherterDrawer(id) {
 
       <div class="flex gap-2 mt-5">
         <button class="btn btn-primary flex-1" onclick="openNachrichtModal('${v.id}')">${iconSvg('send',14)} Nachricht senden</button>
-        <button class="btn btn-secondary flex-1" onclick="closeDrawer(); navTo('antraege'); state.filters.antraege.versicherter='${v.id}'; renderView();">${iconSvg('file-text',14)} Anträge ansehen</button>
+        <button class="btn btn-secondary flex-1" onclick="openNeuerAntragModal('${v.id}')">${iconSvg('plus',14)} Antrag anlegen</button>
+      </div>
+      <div class="flex gap-2 mt-2">
+        <button class="btn btn-ghost flex-1" onclick="closeDrawer(); navTo('antraege'); state.filters.antraege.versicherter='${v.id}'; renderView();">${iconSvg('file-text',14)} Anträge ansehen</button>
       </div>
     </div>
   `;
@@ -1384,6 +1433,7 @@ function renderAntraege() {
         <h1 class="page-title"><em>Anträge</em></h1>
         <p class="page-sub">${list.length} von ${state.antraege.length} Anträgen · Status per Klick änderbar</p>
       </div>
+      <button class="btn btn-primary" onclick="openNeuerAntragModal()">${iconSvg('plus',14)} Neuer Antrag</button>
     </div>
 
     <div class="flex items-center gap-3 mt-6 flex-wrap">
@@ -1989,6 +2039,339 @@ async function confirmDeleteFamilie(id) {
     await api.loadAll();
     renderView();
   } catch (e) { toast('Fehler: ' + e.message, 'error'); }
+}
+
+/* =========================================================
+   VERSICHERTEN-STAMMDATEN BEARBEITEN
+   ========================================================= */
+function openVersicherterEdit(id) {
+  const v = state.versicherte.find(x => x.id === id);
+  if (!v) return;
+  openModal(`
+    <div style="padding: 22px 24px 20px 24px; border-bottom: 1px solid var(--ink-150);">
+      <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Bearbeiten</div>
+      <div class="serif" style="font-size:22px; line-height:1.1; margin-top:2px;">${escapeHTML(v.vorname)} ${escapeHTML(v.nachname)}</div>
+    </div>
+    <form style="padding: 20px 24px; display:flex; flex-direction:column; gap:14px; overflow-y:auto;" onsubmit="return submitVersicherterEdit(event, '${v.id}')">
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="lbl">Anrede</label>
+          <select class="inp" name="anrede">
+            <option ${v.anrede==='Herr'?'selected':''}>Herr</option>
+            <option ${v.anrede==='Frau'?'selected':''}>Frau</option>
+            <option ${v.anrede==='Divers'?'selected':''}>Divers</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Vorname</label>
+          <input class="inp" name="vorname" required value="${escapeHTML(v.vorname)}">
+        </div>
+        <div>
+          <label class="lbl">Nachname</label>
+          <input class="inp" name="nachname" required value="${escapeHTML(v.nachname)}">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">Geburtsdatum</label>
+          <input class="inp" type="date" name="geburtsdatum" required value="${escapeHTML(v.geburtsdatum || '')}">
+        </div>
+        <div>
+          <label class="lbl">Versichertennummer</label>
+          <input class="inp mono" name="versichertennummer" required value="${escapeHTML(v.versichertennummer)}">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">Kassennummer</label>
+          <input class="inp mono" name="kassennummer" value="${escapeHTML(v.kassennummer||'')}">
+        </div>
+        <div>
+          <label class="lbl">Gültig bis</label>
+          <input class="inp" name="gueltig_bis" placeholder="MM/JJJJ" value="${escapeHTML(v.gueltig_bis||'')}">
+        </div>
+      </div>
+      <div>
+        <label class="lbl">Straße</label>
+        <input class="inp" name="strasse" value="${escapeHTML(v.strasse||'')}">
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="lbl">PLZ</label>
+          <input class="inp" name="plz" value="${escapeHTML(v.plz||'')}">
+        </div>
+        <div class="col-span-2">
+          <label class="lbl">Ort</label>
+          <input class="inp" name="ort" value="${escapeHTML(v.ort||'')}">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">E-Mail</label>
+          <input class="inp" type="email" name="email" value="${escapeHTML(v.email||'')}">
+        </div>
+        <div>
+          <label class="lbl">Telefon</label>
+          <input class="inp" name="telefon" value="${escapeHTML(v.telefon||'')}">
+        </div>
+      </div>
+      <div>
+        <label class="lbl">IBAN</label>
+        <input class="inp mono" name="iban" value="${escapeHTML(v.iban||'')}">
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-[var(--ink-150)]" style="padding-top:14px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Speichern</button>
+      </div>
+    </form>
+  `);
+}
+
+async function submitVersicherterEdit(ev, id) {
+  ev.preventDefault();
+  const f = ev.target;
+  const btn = f.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.style.opacity = '0.6';
+  const patch = {
+    anrede: f.anrede.value, vorname: f.vorname.value, nachname: f.nachname.value,
+    geburtsdatum: f.geburtsdatum.value,
+    versichertennummer: f.versichertennummer.value,
+    kassennummer: f.kassennummer.value, gueltig_bis: f.gueltig_bis.value,
+    strasse: f.strasse.value, plz: f.plz.value, ort: f.ort.value,
+    email: f.email.value, telefon: f.telefon.value, iban: f.iban.value
+  };
+  try {
+    await api.updateVersicherter(id, patch);
+    toast('Stammdaten aktualisiert', 'success');
+    closeModal();
+    await api.loadAll();
+    renderView();
+    // Wenn Drawer noch offen war, neu rendern
+    openVersicherterDrawer(id);
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'error');
+    btn.disabled = false; btn.style.opacity = '';
+  }
+  return false;
+}
+
+/* =========================================================
+   NEUER VERSICHERTER ANLEGEN
+   ========================================================= */
+function openNeuerVersicherterModal() {
+  const heute = new Date();
+  const jahr = heute.getFullYear();
+  openModal(`
+    <div style="padding: 22px 24px 20px 24px; border-bottom: 1px solid var(--ink-150);">
+      <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Neu anlegen</div>
+      <div class="serif" style="font-size:22px; line-height:1.1; margin-top:2px;">Versicherter aufnehmen</div>
+    </div>
+    <form style="padding: 20px 24px; display:flex; flex-direction:column; gap:14px; overflow-y:auto;" onsubmit="return submitNeuerVersicherter(event)">
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="lbl">Anrede</label>
+          <select class="inp" name="anrede">
+            <option>Herr</option><option>Frau</option><option>Divers</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Vorname</label>
+          <input class="inp" name="vorname" required autofocus>
+        </div>
+        <div>
+          <label class="lbl">Nachname</label>
+          <input class="inp" name="nachname" required>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">Geburtsdatum</label>
+          <input class="inp" type="date" name="geburtsdatum" required>
+        </div>
+        <div>
+          <label class="lbl">Versichertennummer</label>
+          <input class="inp mono" name="versichertennummer" required placeholder="z. B. E246810121">
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="lbl">Kassennummer</label>
+          <input class="inp mono" name="kassennummer" value="108310400">
+        </div>
+        <div>
+          <label class="lbl">Gültig bis</label>
+          <input class="inp" name="gueltig_bis" placeholder="MM/JJJJ" value="12/${jahr+5}">
+        </div>
+        <div>
+          <label class="lbl">Mitglied seit</label>
+          <input class="inp num" type="number" name="mitglied_seit" value="${jahr}" min="1990" max="${jahr}">
+        </div>
+      </div>
+      <div>
+        <label class="lbl">Straße</label>
+        <input class="inp" name="strasse" placeholder="Musterstraße 1">
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="lbl">PLZ</label>
+          <input class="inp" name="plz" placeholder="10115">
+        </div>
+        <div class="col-span-2">
+          <label class="lbl">Ort</label>
+          <input class="inp" name="ort" placeholder="Berlin">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">E-Mail</label>
+          <input class="inp" type="email" name="email" placeholder="name@mail.de">
+        </div>
+        <div>
+          <label class="lbl">Telefon</label>
+          <input class="inp" name="telefon" placeholder="+49 …">
+        </div>
+      </div>
+      <div>
+        <label class="lbl">IBAN</label>
+        <input class="inp mono" name="iban" placeholder="DE …">
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-[var(--ink-150)]" style="padding-top:14px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">${iconSvg('plus',13)} Anlegen</button>
+      </div>
+    </form>
+  `);
+}
+
+async function submitNeuerVersicherter(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const btn = f.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.style.opacity = '0.6';
+  const row = {
+    anrede: f.anrede.value,
+    vorname: f.vorname.value,
+    nachname: f.nachname.value,
+    geburtsdatum: f.geburtsdatum.value,
+    versichertennummer: f.versichertennummer.value,
+    kassennummer: f.kassennummer.value || '108310400',
+    gueltig_bis: f.gueltig_bis.value,
+    mitglied_seit: parseInt(f.mitglied_seit.value) || null,
+    strasse: f.strasse.value || null,
+    plz: f.plz.value || null,
+    ort: f.ort.value || null,
+    email: f.email.value || null,
+    telefon: f.telefon.value || null,
+    iban: f.iban.value || null
+  };
+  try {
+    const { error } = await sb.from(T.versicherte).insert(row);
+    if (error) throw error;
+    toast('Versicherter angelegt', 'success');
+    closeModal();
+    await api.loadAll();
+    renderView();
+    updateSidebarCounts();
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'error');
+    btn.disabled = false; btn.style.opacity = '';
+  }
+  return false;
+}
+
+/* =========================================================
+   ANTRAG VOM ADMIN AUS ERSTELLEN
+   ========================================================= */
+function openNeuerAntragModal(preVersicherterId='') {
+  openModal(`
+    <div style="padding: 22px 24px 20px 24px; border-bottom: 1px solid var(--ink-150);">
+      <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Neu anlegen</div>
+      <div class="serif" style="font-size:22px; line-height:1.1; margin-top:2px;">Antrag erstellen</div>
+      <div class="text-[12.5px] text-[var(--ink-500)] mt-1">Erstellt für einen Versicherten — erscheint direkt in dessen App.</div>
+    </div>
+    <form style="padding: 20px 24px; display:flex; flex-direction:column; gap:14px; overflow-y:auto;" onsubmit="return submitNeuerAntrag(event)">
+      <div>
+        <label class="lbl">Versicherter</label>
+        <select class="inp" name="versicherter" required>
+          <option value="">— bitte wählen —</option>
+          ${state.versicherte.map(v => `<option value="${v.id}" ${preVersicherterId===v.id?'selected':''}>${escapeHTML(v.vorname)} ${escapeHTML(v.nachname)} · ${escapeHTML(v.versichertennummer)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">Antragstyp</label>
+          <select class="inp" name="typ">
+            <option>Kostenerstattung</option>
+            <option>Zahnreinigung-Zuschuss</option>
+            <option>Haushaltshilfe</option>
+            <option>Krankengeld-Bescheinigung</option>
+            <option>Pflegeantrag</option>
+            <option>Kur / Rehabilitation</option>
+            <option>Sonstiges</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Eingereicht am</label>
+          <input class="inp" type="date" name="eingereicht" value="${new Date().toISOString().slice(0,10)}" required>
+        </div>
+      </div>
+      <div>
+        <label class="lbl">Betreff</label>
+        <input class="inp" name="betreff" required placeholder="Kurze, klare Bezeichnung">
+      </div>
+      <div>
+        <label class="lbl">Beschreibung (optional)</label>
+        <textarea class="inp" name="beschreibung" rows="3" placeholder="Details zum Anliegen …"></textarea>
+      </div>
+      <div>
+        <label class="lbl">Initialer Status</label>
+        <select class="inp" name="status">
+          <option>Eingegangen</option>
+          <option>In Bearbeitung</option>
+        </select>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-[var(--ink-150)]" style="padding-top:14px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">${iconSvg('plus',13)} Anlegen</button>
+      </div>
+    </form>
+  `);
+}
+
+async function submitNeuerAntrag(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const btn = f.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.style.opacity = '0.6';
+  try {
+    const { data: antrag, error } = await sb.from(T.antraege).insert({
+      versicherter_id: f.versicherter.value,
+      typ: f.typ.value,
+      betreff: f.betreff.value,
+      beschreibung: f.beschreibung.value || null,
+      eingereicht_am: f.eingereicht.value,
+      status: f.status.value
+    }).select().single();
+    if (error) throw error;
+
+    // Default-Timeline anlegen
+    const datumDE = isoToDE(f.eingereicht.value);
+    await sb.from(T.timeline).insert([
+      { antrag_id: antrag.id, datum: datumDE, text: 'Antrag eingegangen',       status: f.status.value === 'In Bearbeitung' ? 'done' : 'current', sortierung: 1 },
+      { antrag_id: antrag.id, datum: '—',     text: 'Unterlagen werden geprüft', status: f.status.value === 'In Bearbeitung' ? 'current' : 'pending', sortierung: 2 },
+      { antrag_id: antrag.id, datum: '—',     text: 'Entscheidung & Rückmeldung',status: 'pending', sortierung: 3 }
+    ]);
+
+    toast('Antrag angelegt', 'success');
+    closeModal();
+    await api.loadAll();
+    renderView();
+    updateSidebarCounts();
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'error');
+    btn.disabled = false; btn.style.opacity = '';
+  }
+  return false;
 }
 
 /* =========================================================
