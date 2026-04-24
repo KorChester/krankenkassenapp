@@ -2,11 +2,21 @@
 <!--
   ====================================================================
   NichtGanz-21c · Admin-Panel
-  Version: v0.1.0
+  Version: v0.2.0
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.2.0 (2026-04-24)
+    + Brandingtool: White-Labeling-Oberfläche
+      - Kassenname, Begrüßung, Slogan, Widget-Titel einstellbar
+      - Primär- und Akzentfarbe per Color-Picker
+      - Logo-Buchstabe anpassbar
+      - 5 Presets (MusterKasse, DAK, AOK, TK, Barmer)
+      - Live-Vorschau mit Farben-Preview
+      - Änderungen werden via Realtime sofort in der App sichtbar
+    + Neue Tabelle mk_branding (Singleton) mit Realtime-Subscription
+
   v0.1.0 (2026-04-24)
     + Versionierung eingeführt
     + Branding: "NichtGanz-21c" als Marke
@@ -17,11 +27,11 @@
     + Sidebar-Footer zeigt Infrastruktur-Kontext (Coolify + Supabase)
   ====================================================================
 -->
-<html lang="de" data-admin-version="0.1.0">
+<html lang="de" data-admin-version="0.2.0">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NichtGanz-21c · Admin · v0.1.0</title>
+<title>NichtGanz-21c · Admin · v0.2.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -646,6 +656,223 @@
   /* Small utility */
   .divider { height: 1px; background: var(--ink-150); margin: 18px 0; }
 
+  /* ============ BRANDINGTOOL ============ */
+  .branding-section-title {
+    font-size: 11px; font-weight: 600; color: var(--ink-500);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--ink-100);
+  }
+
+  .preset-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    padding: 14px 18px 18px 18px;
+  }
+
+  .preset-card {
+    position: relative;
+    background: #fff;
+    border: 1.5px solid var(--ink-200);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: all .15s ease;
+    overflow: hidden;
+  }
+  .preset-card:hover {
+    border-color: var(--p);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px -4px rgba(12,21,33,.08);
+  }
+  .preset-card.active {
+    border-color: var(--p);
+    border-width: 2px;
+    background: linear-gradient(135deg, #fff 60%, color-mix(in srgb, var(--p) 8%, #fff));
+  }
+
+  .preset-swatches {
+    display: flex; gap: 4px;
+    margin-bottom: 10px;
+  }
+  .preset-swatch {
+    width: 18px; height: 18px;
+    border-radius: 5px;
+    box-shadow: inset 0 0 0 1px rgba(12,21,33,.08);
+  }
+
+  .preset-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-900);
+    margin-bottom: 2px;
+  }
+  .preset-desc {
+    font-size: 10.5px;
+    color: var(--ink-500);
+    line-height: 1.3;
+  }
+
+  .preset-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    font-size: 9.5px;
+    font-weight: 600;
+    background: var(--p);
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .color-input {
+    display: flex; gap: 8px;
+    align-items: stretch;
+  }
+  .color-input input[type="color"] {
+    width: 44px; height: 38px;
+    border: 1px solid var(--ink-200);
+    border-radius: 9px;
+    background: #fff;
+    padding: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .color-input input[type="text"],
+  .color-input input.inp {
+    flex: 1;
+    text-transform: uppercase;
+  }
+
+  /* ============ LIVE-PREVIEW (Handy-Mockup) ============ */
+  .preview-phone {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 22px;
+    box-shadow:
+      0 0 0 6px #1a202c,
+      0 20px 40px -15px rgba(12,21,33,.25);
+    padding: 16px 14px 20px 14px;
+    font-family: 'Geist', sans-serif;
+    overflow: hidden;
+  }
+
+  .preview-header {
+    margin-bottom: 14px;
+  }
+  .preview-greeting {
+    font-size: 10px; font-weight: 500;
+    color: var(--ink-500);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .preview-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--ink-900);
+    margin-top: 2px;
+  }
+  .preview-name em {
+    font-style: italic;
+    color: var(--p);
+  }
+  .preview-brand-pill {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: var(--ink-50);
+    border-radius: 10px;
+  }
+  .preview-logo {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--p), var(--pd));
+    color: #fff;
+    font-family: 'Instrument Serif', serif;
+    font-size: 18px; font-weight: 400;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(12,21,33,.15);
+  }
+  .preview-kassenname {
+    font-size: 12px; font-weight: 600; color: var(--ink-900);
+    line-height: 1.2;
+  }
+  .preview-slogan {
+    font-size: 9.5px; color: var(--ink-500); line-height: 1.2;
+  }
+
+  .preview-egk {
+    background: linear-gradient(135deg, var(--p), var(--pd));
+    color: #fff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    position: relative;
+    box-shadow: 0 4px 12px -4px rgba(12,21,33,.15);
+    overflow: hidden;
+  }
+  .preview-egk::before {
+    content: "";
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.1);
+  }
+  .preview-egk-label {
+    font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.1em; opacity: 0.8;
+  }
+  .preview-egk-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 15px; margin-top: 4px;
+  }
+  .preview-egk-nr {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    margin-top: 6px;
+    opacity: 0.85;
+    letter-spacing: 0.05em;
+  }
+
+  .preview-section-title {
+    font-size: 11px; font-weight: 600;
+    color: var(--ink-700);
+    margin: 14px 0 6px 0;
+    padding-left: 2px;
+  }
+
+  .preview-widget {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid var(--ink-150);
+    border-radius: 10px;
+  }
+  .preview-widget-icon {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--a) 14%, transparent);
+    color: var(--a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .preview-widget-title {
+    font-size: 11.5px; font-weight: 600; color: var(--ink-900);
+    line-height: 1.2;
+  }
+  .preview-widget-sub {
+    font-size: 10px; color: var(--ink-500);
+    margin-top: 1px;
+  }
+
   /* Command palette (Cmd+K) */
   .cmdk-backdrop {
     position: fixed; inset: 0; z-index: 120;
@@ -767,6 +994,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 11h-6"/><path d="M20 8v6"/></svg>
         Familie
       </button>
+
+      <div class="nav-section">White-Labeling</div>
+      <button class="nav-item" data-view="branding">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+        Brandingtool
+      </button>
     </nav>
 
     <div style="padding: 12px 10px; border-top: 1px solid var(--ink-150); margin-top: 14px;">
@@ -825,8 +1058,19 @@
 /* =========================================================
    NichtGanz-21c · Admin-Panel
    ========================================================= */
-const ADMIN_VERSION = '0.1.0';
+const ADMIN_VERSION = '0.2.0';
 const ADMIN_CHANGELOG = [
+  {
+    version: '0.2.0',
+    date: '24.04.2026',
+    changes: [
+      'Brandingtool: White-Labeling-Oberfläche mit Live-Vorschau',
+      '5 Preset-Brandings (MusterKasse, DAK, AOK, TK, Barmer)',
+      'Farben, Kassenname, Begrüßung, Widget-Titel einstellbar',
+      'Änderungen erscheinen via Realtime sofort in der App',
+      'Neue Tabelle mk_branding mit Realtime-Subscription'
+    ]
+  },
   {
     version: '0.1.0',
     date: '24.04.2026',
@@ -856,7 +1100,8 @@ const T = {
   antraege:     'mk_antraege',
   timeline:     'mk_antrag_timeline',
   nachrichten:  'mk_nachrichten',
-  uploads:      'mk_au_uploads'
+  uploads:      'mk_au_uploads',
+  branding:     'mk_branding'
 };
 const BUCKET = 'mk-au-uploads';
 
@@ -870,10 +1115,112 @@ const state = {
   nachrichten: [],
   uploads: [],
   familie: [],
+  branding: null,
   // Filter-UI
   filters: {
     antraege: { status: 'alle', versicherter: 'alle' },
     postfach: { gelesen: 'alle' }
+  }
+};
+
+/* =========================================================
+   BRANDING-PRESETS
+   ========================================================= */
+const BRANDING_PRESETS = {
+  musterkasse: {
+    name: 'MusterKasse',
+    beschreibung: 'Standard-Branding (Marine + Sage)',
+    data: {
+      kassenname: 'MusterKasse',
+      kassenname_kurz: 'MusterKasse',
+      logo_buchstabe: '+',
+      primary_color: '#0E3A75',
+      primary_dark:  '#0B2A56',
+      primary_light: '#1B5FB5',
+      accent_color:  '#3F7D5A',
+      accent_light:  '#4F9A6E',
+      begruessung: 'Guten Tag',
+      slogan: 'Ihre Online-Geschäftsstelle',
+      vorsorge_titel: 'Gesundheit & Vorsorge',
+      bonus_titel: 'Bonusprogramm',
+      aktuelles_preset: 'musterkasse'
+    }
+  },
+  dak: {
+    name: 'DAK-Style',
+    beschreibung: 'Kräftiges Magenta-Pink',
+    data: {
+      kassenname: 'DAK-Gesundheit',
+      kassenname_kurz: 'DAK',
+      logo_buchstabe: 'D',
+      primary_color: '#C5172E',
+      primary_dark:  '#8A0F20',
+      primary_light: '#E63946',
+      accent_color:  '#4A4A4A',
+      accent_light:  '#6B6B6B',
+      begruessung: 'Willkommen',
+      slogan: 'Ihre Gesundheits-App',
+      vorsorge_titel: 'Prävention & Vorsorge',
+      bonus_titel: 'DAK-AktivBonus',
+      aktuelles_preset: 'dak'
+    }
+  },
+  aok: {
+    name: 'AOK-Style',
+    beschreibung: 'Signalgrün & Weiß',
+    data: {
+      kassenname: 'AOK',
+      kassenname_kurz: 'AOK',
+      logo_buchstabe: 'A',
+      primary_color: '#005E3F',
+      primary_dark:  '#00422C',
+      primary_light: '#008556',
+      accent_color:  '#F7B500',
+      accent_light:  '#FFC933',
+      begruessung: 'Hallo',
+      slogan: 'Die Gesundheitskasse',
+      vorsorge_titel: 'Gesund bleiben',
+      bonus_titel: 'AOK-Bonusprogramm',
+      aktuelles_preset: 'aok'
+    }
+  },
+  tk: {
+    name: 'TK-Style',
+    beschreibung: 'Modernes Hellblau',
+    data: {
+      kassenname: 'Techniker Krankenkasse',
+      kassenname_kurz: 'TK',
+      logo_buchstabe: 'T',
+      primary_color: '#0072B8',
+      primary_dark:  '#004E80',
+      primary_light: '#2196E5',
+      accent_color:  '#FF6B35',
+      accent_light:  '#FF8C5A',
+      begruessung: 'Hi',
+      slogan: 'Meine TK',
+      vorsorge_titel: 'Vorsorge & Check-Ups',
+      bonus_titel: 'TK-Bonusprogramm',
+      aktuelles_preset: 'tk'
+    }
+  },
+  barmer: {
+    name: 'Barmer-Style',
+    beschreibung: 'Frisches Grün-Türkis',
+    data: {
+      kassenname: 'Barmer',
+      kassenname_kurz: 'Barmer',
+      logo_buchstabe: 'B',
+      primary_color: '#00A19A',
+      primary_dark:  '#007570',
+      primary_light: '#00C4BB',
+      accent_color:  '#E87722',
+      accent_light:  '#F08C42',
+      begruessung: 'Guten Tag',
+      slogan: 'Ihre Gesundheit im Fokus',
+      vorsorge_titel: 'Vorsorge-Termine',
+      bonus_titel: 'Barmer-Bonus',
+      aktuelles_preset: 'barmer'
+    }
   }
 };
 
@@ -948,12 +1295,13 @@ function toast(msg, type='success') {
    ========================================================= */
 const api = {
   async loadAll() {
-    const [vers, antr, nachr, upl, fam] = await Promise.all([
+    const [vers, antr, nachr, upl, fam, brnd] = await Promise.all([
       sb.from(T.versicherte).select('*').order('nachname'),
       sb.from(T.antraege).select('*').order('created_at', { ascending: false }),
       sb.from(T.nachrichten).select('*').order('created_at', { ascending: false }),
       sb.from(T.uploads).select('*').order('hochgeladen_am', { ascending: false }),
-      sb.from(T.familie).select('*').order('name')
+      sb.from(T.familie).select('*').order('name'),
+      sb.from(T.branding).select('*').eq('id','singleton').single()
     ]);
     const err = vers.error || antr.error || nachr.error || upl.error || fam.error;
     if (err) throw err;
@@ -962,6 +1310,12 @@ const api = {
     state.nachrichten = nachr.data || [];
     state.uploads     = upl.data   || [];
     state.familie     = fam.data   || [];
+    // Branding-Row muss vorhanden sein, sonst Default nehmen (Tabelle evtl. nicht migriert)
+    state.branding    = brnd.data || BRANDING_PRESETS.musterkasse.data;
+  },
+  async updateBranding(patch) {
+    const { error } = await sb.from(T.branding).update({ ...patch, updated_at: new Date().toISOString() }).eq('id','singleton');
+    if (error) throw error;
   },
   async loadTimeline(antragId) {
     const { data, error } = await sb.from(T.timeline).select('*').eq('antrag_id', antragId).order('sortierung');
@@ -1145,7 +1499,7 @@ function setupRealtime() {
   realtimeChannel = sb.channel('musterkasse-admin-live');
 
   // Auf alle mk_-Tabellen horchen
-  ['mk_versicherte','mk_familienmitglieder','mk_antraege','mk_antrag_timeline','mk_nachrichten','mk_au_uploads']
+  ['mk_versicherte','mk_familienmitglieder','mk_antraege','mk_antrag_timeline','mk_nachrichten','mk_au_uploads','mk_branding']
     .forEach(table => {
       realtimeChannel.on('postgres_changes',
         { event: '*', schema: 'public', table },
@@ -1209,6 +1563,7 @@ function renderView() {
     case 'postfach':     c.innerHTML = renderPostfach();    break;
     case 'uploads':      c.innerHTML = renderUploads();     break;
     case 'familie':      c.innerHTML = renderFamilie();     break;
+    case 'branding':     c.innerHTML = renderBranding();    break;
   }
 }
 
@@ -2487,6 +2842,309 @@ async function submitNeuerAntrag(ev) {
     await api.loadAll();
     renderView();
     updateSidebarCounts();
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'error');
+    btn.disabled = false; btn.style.opacity = '';
+  }
+  return false;
+}
+
+/* =========================================================
+   VIEW: BRANDINGTOOL
+   ========================================================= */
+function renderBranding() {
+  const b = state.branding || BRANDING_PRESETS.musterkasse.data;
+  const currentPreset = b.aktuelles_preset || 'musterkasse';
+
+  const presetCards = Object.entries(BRANDING_PRESETS).map(([key, p]) => {
+    const isActive = key === currentPreset;
+    return `
+      <button onclick="applyPreset('${key}')"
+              class="preset-card ${isActive ? 'active' : ''}"
+              style="--p: ${p.data.primary_color}; --a: ${p.data.accent_color};">
+        <div class="preset-swatches">
+          <div class="preset-swatch" style="background: ${p.data.primary_color};"></div>
+          <div class="preset-swatch" style="background: ${p.data.accent_color};"></div>
+        </div>
+        <div class="preset-name">${escapeHTML(p.name)}</div>
+        <div class="preset-desc">${escapeHTML(p.beschreibung)}</div>
+        ${isActive ? `<div class="preset-badge">Aktiv</div>` : ''}
+      </button>`;
+  }).join('');
+
+  return `
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="page-eyebrow">White-Labeling</div>
+        <h1 class="page-title"><em>Brandingtool</em></h1>
+        <p class="page-sub">Die App erscheint in Ihrem Kassen-Design · Änderungen werden live in der App übernommen.</p>
+      </div>
+      <button class="btn btn-secondary" onclick="applyPreset('musterkasse')">${iconSvg('refresh',13)} Zurücksetzen</button>
+    </div>
+
+    <!-- Presets -->
+    <div class="panel mt-7">
+      <div class="panel-header">
+        <div class="panel-title">Schnellauswahl · Kassen-Presets</div>
+        <div class="text-[11.5px] text-[var(--ink-500)]">Klick auf ein Preset übernimmt alle Einstellungen</div>
+      </div>
+      <div class="preset-grid">
+        ${presetCards}
+      </div>
+    </div>
+
+    <!-- Einstellungen + Vorschau -->
+    <div class="grid gap-5 mt-5" style="grid-template-columns: 1.3fr 1fr;">
+      <!-- Linke Spalte: Einstellungen -->
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Einstellungen</div></div>
+        <form id="brandingForm" style="padding: 20px 22px; display:flex; flex-direction:column; gap:18px;" onsubmit="return saveBranding(event)" oninput="updateBrandingPreview()">
+
+          <!-- Identität -->
+          <div>
+            <div class="branding-section-title">Identität</div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="lbl">Kassenname (lang)</label>
+                <input class="inp" name="kassenname" value="${escapeHTML(b.kassenname)}" required>
+              </div>
+              <div>
+                <label class="lbl">Kassenname (kurz)</label>
+                <input class="inp" name="kassenname_kurz" value="${escapeHTML(b.kassenname_kurz)}" required>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mt-3">
+              <div>
+                <label class="lbl">Logo-Buchstabe / Symbol</label>
+                <input class="inp mono" name="logo_buchstabe" value="${escapeHTML(b.logo_buchstabe)}" maxlength="2" style="text-align:center;">
+              </div>
+              <div class="col-span-2">
+                <label class="lbl">Slogan</label>
+                <input class="inp" name="slogan" value="${escapeHTML(b.slogan)}">
+              </div>
+            </div>
+          </div>
+
+          <!-- Farben -->
+          <div>
+            <div class="branding-section-title">Farbwelt</div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="lbl">Primärfarbe (Header, Buttons)</label>
+                <div class="color-input">
+                  <input type="color" name="primary_color_picker" value="${escapeHTML(b.primary_color)}" onchange="syncColor('primary_color', this.value)">
+                  <input class="inp mono" name="primary_color" value="${escapeHTML(b.primary_color)}" onchange="syncColor('primary_color_picker', this.value)">
+                </div>
+              </div>
+              <div>
+                <label class="lbl">Akzentfarbe (Highlights, Vorsorge)</label>
+                <div class="color-input">
+                  <input type="color" name="accent_color_picker" value="${escapeHTML(b.accent_color)}" onchange="syncColor('accent_color', this.value)">
+                  <input class="inp mono" name="accent_color" value="${escapeHTML(b.accent_color)}" onchange="syncColor('accent_color_picker', this.value)">
+                </div>
+              </div>
+            </div>
+            <div class="text-[11.5px] text-[var(--ink-500)] mt-2">
+              ${iconSvg('alert',11)} Hell/Dunkel-Varianten der Primärfarbe werden automatisch abgeleitet.
+            </div>
+          </div>
+
+          <!-- Texte -->
+          <div>
+            <div class="branding-section-title">Texte & Widget-Titel</div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="lbl">Begrüßung (im App-Header)</label>
+                <input class="inp" name="begruessung" value="${escapeHTML(b.begruessung)}">
+              </div>
+              <div>
+                <label class="lbl">Vorsorge-Widget-Titel</label>
+                <input class="inp" name="vorsorge_titel" value="${escapeHTML(b.vorsorge_titel)}">
+              </div>
+            </div>
+            <div class="mt-3">
+              <label class="lbl">Bonusprogramm-Titel</label>
+              <input class="inp" name="bonus_titel" value="${escapeHTML(b.bonus_titel)}">
+            </div>
+          </div>
+
+          <div class="flex gap-2 pt-2 border-t border-[var(--ink-150)]" style="padding-top: 14px;">
+            <button type="submit" class="btn btn-primary flex-1">${iconSvg('check',14)} Speichern & live schalten</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Rechte Spalte: Live-Vorschau -->
+      <div class="panel" style="position: sticky; top: 88px; align-self: start;">
+        <div class="panel-header">
+          <div class="panel-title">Live-Vorschau</div>
+          <div class="text-[11.5px] text-[var(--ink-500)]">wie Versicherte die App sehen</div>
+        </div>
+        <div id="brandingPreview" style="padding: 20px;">
+          ${brandingPreviewHTML(b)}
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5 p-4 rounded-xl" style="background: var(--brand-50); border: 1px solid var(--brand-100);">
+      <div class="flex items-start gap-3">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--brand-600);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          ${iconSvg('activity',16)}
+        </div>
+        <div>
+          <div class="text-[13px] font-semibold text-[var(--brand-900)]">White-Labeling · wie funktioniert das?</div>
+          <div class="text-[12px] text-[var(--ink-700)] mt-1 leading-relaxed">
+            Bei der BITMARCK-Architektur läuft eine einzige Code-Basis für viele verschiedene Krankenkassen
+            — jede in ihrer eigenen Farbwelt und mit ihren Inhalten. Genau das simuliert dieses Brandingtool:
+            Die Einstellungen werden in der Datenbank gespeichert (<span class="mono">mk_branding</span>),
+            die App lädt sie beim Start und wendet sie über CSS-Variablen an.
+            Dank <span class="font-semibold">Realtime</span> erscheint jede Änderung sofort bei allen
+            aktiven Nutzern — ohne Neuladen.
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* Live-Preview-HTML (Handy-Mockup mit aktuellen Werten) */
+function brandingPreviewHTML(b) {
+  const primaryLight = lightenColor(b.primary_color, 0.2);
+  const primaryDark  = darkenColor(b.primary_color, 0.2);
+
+  return `
+    <div class="preview-phone" style="--p:${b.primary_color}; --pd:${primaryDark}; --pl:${primaryLight}; --a:${b.accent_color};">
+      <!-- Preview-Header -->
+      <div class="preview-header">
+        <div class="preview-greeting">${escapeHTML(b.begruessung)}</div>
+        <div class="preview-name">Max <em>Mustermann</em></div>
+        <div class="preview-brand-pill">
+          <div class="preview-logo">${escapeHTML(b.logo_buchstabe)}</div>
+          <div>
+            <div class="preview-kassenname">${escapeHTML(b.kassenname)}</div>
+            <div class="preview-slogan">${escapeHTML(b.slogan)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- eGK -->
+      <div class="preview-egk">
+        <div class="preview-egk-label">Gesundheitskarte</div>
+        <div class="preview-egk-name">Max Mustermann</div>
+        <div class="preview-egk-nr">A123 456 789</div>
+      </div>
+
+      <!-- Vorsorge-Widget -->
+      <div class="preview-section-title">${escapeHTML(b.vorsorge_titel)}</div>
+      <div class="preview-widget">
+        <div class="preview-widget-icon">♥</div>
+        <div class="flex-1">
+          <div class="preview-widget-title">Gesundheits-Check-Up</div>
+          <div class="preview-widget-sub">Fällig am 07.05.2026</div>
+        </div>
+      </div>
+
+      <!-- Bonus -->
+      <div class="preview-section-title" style="margin-top:12px;">${escapeHTML(b.bonus_titel)}</div>
+      <div class="preview-widget">
+        <div class="preview-widget-icon" style="background: var(--a); color: #fff;">★</div>
+        <div class="flex-1">
+          <div class="preview-widget-title">480 Punkte</div>
+          <div class="preview-widget-sub">4 von 5 Aktivitäten erledigt</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* Hex-Farben aufhellen / abdunkeln */
+function lightenColor(hex, amount) {
+  return shadeColor(hex, amount);
+}
+function darkenColor(hex, amount) {
+  return shadeColor(hex, -amount);
+}
+function shadeColor(hex, percent) {
+  const h = hex.replace('#','');
+  let r = parseInt(h.substr(0,2),16);
+  let g = parseInt(h.substr(2,2),16);
+  let b = parseInt(h.substr(4,2),16);
+  if (percent >= 0) {
+    r = Math.round(r + (255-r) * percent);
+    g = Math.round(g + (255-g) * percent);
+    b = Math.round(b + (255-b) * percent);
+  } else {
+    r = Math.round(r * (1+percent));
+    g = Math.round(g * (1+percent));
+    b = Math.round(b * (1+percent));
+  }
+  return '#' + [r,g,b].map(x => Math.max(0,Math.min(255,x)).toString(16).padStart(2,'0')).join('');
+}
+
+/* Color-Picker und Text-Input synchronisieren */
+function syncColor(targetName, value) {
+  const el = document.querySelector(`[name="${targetName}"]`);
+  if (el) el.value = value;
+  updateBrandingPreview();
+}
+
+/* Live-Vorschau bei jeder Eingabe aktualisieren */
+function updateBrandingPreview() {
+  const form = document.getElementById('brandingForm');
+  if (!form) return;
+  const b = {
+    kassenname: form.kassenname.value,
+    kassenname_kurz: form.kassenname_kurz.value,
+    logo_buchstabe: form.logo_buchstabe.value,
+    primary_color: form.primary_color.value,
+    accent_color: form.accent_color.value,
+    begruessung: form.begruessung.value,
+    slogan: form.slogan.value,
+    vorsorge_titel: form.vorsorge_titel.value,
+    bonus_titel: form.bonus_titel.value
+  };
+  const preview = document.getElementById('brandingPreview');
+  if (preview) preview.innerHTML = brandingPreviewHTML(b);
+}
+
+/* Preset anwenden und speichern */
+async function applyPreset(key) {
+  const preset = BRANDING_PRESETS[key];
+  if (!preset) return;
+  try {
+    await api.updateBranding(preset.data);
+    state.branding = { ...state.branding, ...preset.data };
+    toast(`Preset "${preset.name}" angewendet · App-Ansicht wird aktualisiert`, 'success');
+    renderView();
+  } catch (e) { toast('Fehler: ' + (e.message || e), 'error'); }
+}
+
+/* Manuelle Speichern */
+async function saveBranding(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const btn = f.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.style.opacity = '0.6';
+  const patch = {
+    kassenname: f.kassenname.value,
+    kassenname_kurz: f.kassenname_kurz.value,
+    logo_buchstabe: f.logo_buchstabe.value || '+',
+    primary_color: f.primary_color.value,
+    primary_dark:  darkenColor(f.primary_color.value, 0.25),
+    primary_light: lightenColor(f.primary_color.value, 0.15),
+    accent_color: f.accent_color.value,
+    accent_light: lightenColor(f.accent_color.value, 0.1),
+    begruessung: f.begruessung.value,
+    slogan: f.slogan.value,
+    vorsorge_titel: f.vorsorge_titel.value,
+    bonus_titel: f.bonus_titel.value,
+    aktuelles_preset: 'custom'
+  };
+  try {
+    await api.updateBranding(patch);
+    state.branding = { ...state.branding, ...patch };
+    toast('Branding gespeichert · App-Ansicht wird live aktualisiert', 'success');
+    renderView();
   } catch (e) {
     toast('Fehler: ' + (e.message || e), 'error');
     btn.disabled = false; btn.style.opacity = '';
