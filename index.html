@@ -1,9 +1,26 @@
 <!DOCTYPE html>
-<html lang="de">
+<!--
+  ====================================================================
+  MusterKasse · Versicherten-App
+  Version: v0.1.0
+  Build:   2026-04-24
+  --------------------------------------------------------------------
+  CHANGELOG
+  --------------------------------------------------------------------
+  v0.1.0 (2026-04-24)
+    + Versionierung eingeführt
+    + Realtime-Subscription via Supabase (Live-Updates ohne F5)
+    + Profil-Bearbeitung (Adresse, Kontakt, IBAN) speichert echt in DB
+    + Familienmitglied hinzufügen speichert echt in DB
+    + "chevron-down"-Icon zur Icon-Bibliothek hinzugefügt
+    + initialen() robust gegen leere Namen gemacht
+  ====================================================================
+-->
+<html lang="de" data-app-version="0.1.0">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MusterKasse – Ihre Online-Geschäftsstelle</title>
+<title>MusterKasse · v0.1.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -661,6 +678,24 @@ window.lucide = {
 /* =========================================================
    MusterKasse – Prototyp State & Logic
    ========================================================= */
+
+/* =========================================================
+   MusterKasse – Versicherten-App
+   ========================================================= */
+const APP_VERSION = '0.1.0';
+const APP_CHANGELOG = [
+  {
+    version: '0.1.0',
+    date: '24.04.2026',
+    changes: [
+      'Versionierung eingeführt',
+      'Realtime: Live-Updates ohne Neuladen',
+      'Profil-Bearbeitung speichert in Datenbank',
+      'Familienmitglied hinzufügen speichert in Datenbank',
+      'Icon-Bibliothek erweitert, Robustheit verbessert'
+    ]
+  }
+];
 
 /* =========================================================
    SUPABASE-VERBINDUNG
@@ -1482,10 +1517,46 @@ function renderProfil() {
       </div>
     </div>
 
-    <div class="text-center text-[11px] text-[var(--ink-400)] pt-2">
-      MusterKasse App · Version 4.2.1 · Prototyp
-    </div>
+    <button type="button" class="w-full text-center text-[11px] text-[var(--ink-400)] pt-2 hover:text-[var(--brand-700)] transition" onclick="openChangelog()">
+      MusterKasse App · <span class="num">v${APP_VERSION}</span> · <span class="underline decoration-dotted">Changelog</span>
+    </button>
   </div>`;
+}
+
+function openChangelog() {
+  const items = APP_CHANGELOG.map(c => `
+    <div class="pb-3 mb-3 border-b border-[var(--ink-100)] last:border-b-0 last:mb-0 last:pb-0">
+      <div class="flex items-baseline gap-2">
+        <span class="num text-[15px] font-semibold text-[var(--brand-700)]">v${c.version}</span>
+        <span class="text-[11.5px] text-[var(--ink-500)] num">${c.date}</span>
+      </div>
+      <ul class="mt-1.5 space-y-1">
+        ${c.changes.map(x => `<li class="text-[12.5px] text-[var(--ink-700)] leading-snug flex items-start gap-1.5">
+          <span class="text-[var(--sage-600)] mt-0.5">+</span><span>${escapeHTML(x)}</span>
+        </li>`).join('')}
+      </ul>
+    </div>`).join('');
+
+  openSheet(`
+    <div class="px-5 pt-3 pb-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Versionshistorie</div>
+          <div class="serif text-[22px] leading-tight mt-0.5">Was ist neu</div>
+        </div>
+        <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="mt-5">${items}</div>
+      <div class="mt-5 p-3 rounded-xl bg-[var(--ink-50)] border border-[var(--ink-150)]">
+        <div class="flex items-start gap-2.5">
+          <i data-lucide="info" class="w-4 h-4 text-[var(--brand-600)] mt-0.5 flex-shrink-0"></i>
+          <div class="text-[11.5px] text-[var(--ink-600)] leading-relaxed">
+            Versionsnummern folgen <span class="mono">Semantic Versioning</span>: <span class="mono">MAJOR.MINOR.PATCH</span>. Bei neuen Features wird MINOR erhöht, bei Bugfixes PATCH.
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
 }
 
 /* =========================================================
