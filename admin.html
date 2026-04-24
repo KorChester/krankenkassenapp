@@ -2,11 +2,17 @@
 <!--
   ====================================================================
   NichtGanz-21c · Admin-Panel
-  Version: v0.4.0
+  Version: v0.5.0
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.5.0 (2026-04-24) · DAK-Farbe + App-Login
+    ~ DAK-Preset: Authentisches DAK-Orange (#EC6608) statt Magenta
+    ~ DAK-Slogan: "Unternehmen Leben" (offizielle Tagline)
+    ~ DAK-Akzentfarbe: Dunkles Navy-Blau als Kontrast
+    + Passend zur App v0.5.0 mit Login-Gate
+
   v0.4.0 (2026-04-24) · Brandingtool-Erweiterung
     + Tab-spezifische Einstellungen pro App-Bereich
     + Accordion-Struktur: Home immer sichtbar, Anträge/Postfach/Profil aufklappbar
@@ -58,11 +64,11 @@
     + Sidebar-Footer zeigt Infrastruktur-Kontext (Coolify + Supabase)
   ====================================================================
 -->
-<html lang="de" data-admin-version="0.4.0">
+<html lang="de" data-admin-version="0.5.0">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NichtGanz-21c · Admin · v0.4.0</title>
+<title>NichtGanz-21c · Admin · v0.5.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1187,8 +1193,17 @@
 /* =========================================================
    NichtGanz-21c · Admin-Panel
    ========================================================= */
-const ADMIN_VERSION = '0.4.0';
+const ADMIN_VERSION = '0.5.0';
 const ADMIN_CHANGELOG = [
+  {
+    version: '0.5.0',
+    date: '24.04.2026',
+    changes: [
+      'DAK-Preset: Authentisches Orange (#EC6608) statt Magenta',
+      'DAK-Slogan: "Unternehmen Leben" (offizielle Tagline)',
+      'App v0.5.0 hat nun Login-Gate (Demo-PIN: 1234)'
+    ]
+  },
   {
     version: '0.4.0',
     date: '24.04.2026',
@@ -1326,18 +1341,18 @@ const BRANDING_PRESETS = {
   },
   dak: {
     name: 'DAK-Style',
-    beschreibung: 'Kräftiges Magenta-Pink',
+    beschreibung: 'DAK-Orange, kräftig & warm',
     data: {
       kassenname: 'DAK-Gesundheit',
       kassenname_kurz: 'DAK',
       logo_buchstabe: 'D',
-      primary_color: '#C5172E',
-      primary_dark:  '#8A0F20',
-      primary_light: '#E63946',
-      accent_color:  '#4A4A4A',
-      accent_light:  '#6B6B6B',
+      primary_color: '#EC6608',
+      primary_dark:  '#B84D00',
+      primary_light: '#FF8533',
+      accent_color:  '#2B3B52',
+      accent_light:  '#3E5376',
       begruessung: 'Willkommen',
-      slogan: 'Ihre Gesundheits-App',
+      slogan: 'Unternehmen Leben',
       vorsorge_titel: 'Prävention & Vorsorge',
       bonus_titel: 'DAK-AktivBonus',
       antraege_titel: 'Meine Leistungen',
