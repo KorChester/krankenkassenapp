@@ -2,11 +2,20 @@
 <!--
   ====================================================================
   NichtGanz-21c · Admin-Panel
-  Version: v0.2.0
+  Version: v0.2.1
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.2.1 (2026-04-24) · Design-Refresh
+    ~ Komplette Umstellung auf Sans-Serif (Geist, 300-900)
+    ~ Keine Kursiv-Schrift mehr — moderne SaaS-Ästhetik (Linear-Style)
+    ~ KPI-Werte: Geist Bold statt Instrument Serif
+    ~ Page-Titel: Font-Weight-Kontrast statt Italics
+    ~ Marke "NichtGanz-21c": Wordmark in 700, "-21c" als Mono-Pill
+    ~ Brand-Logo-Monogram "N" in Geist Bold statt kursiv
+    ~ Tighter Letter-Spacing für Display-Größen
+
   v0.2.0 (2026-04-24)
     + Brandingtool: White-Labeling-Oberfläche
       - Kassenname, Begrüßung, Slogan, Widget-Titel einstellbar
@@ -27,16 +36,16 @@
     + Sidebar-Footer zeigt Infrastruktur-Kontext (Coolify + Supabase)
   ====================================================================
 -->
-<html lang="de" data-admin-version="0.2.0">
+<html lang="de" data-admin-version="0.2.1">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NichtGanz-21c · Admin · v0.2.0</title>
+<title>NichtGanz-21c · Admin · v0.2.1</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --brand-900: #0A1F3D;
@@ -84,31 +93,41 @@
     text-rendering: optimizeLegibility;
     font-feature-settings: "cv11", "ss01";
   }
-  .serif { font-family: 'Instrument Serif', ui-serif, Georgia, serif; letter-spacing: -0.01em; }
+  /* Legacy-Klasse (ehemals Serif) — jetzt Sans mit Display-Gewicht.
+     Bleibt als Klasse vorhanden, damit alle Templates weiter funktionieren. */
+  .serif {
+    font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
   .mono  { font-family: 'Geist Mono', ui-monospace, Menlo, Monaco, monospace; }
   .num   { font-variant-numeric: tabular-nums; }
 
   /* ============ MARKE "NichtGanz-21c" ============ */
   .brand-wordmark {
-    font-family: 'Instrument Serif', serif;
-    letter-spacing: -0.02em;
+    font-family: 'Geist', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
     color: var(--ink-900);
     line-height: 1;
   }
+  /* ehemals "em" für Kursiv-Hervorhebung; jetzt dezenter Akzent via Farbe */
   .brand-wordmark em {
-    font-style: italic;
+    font-style: normal;
+    font-weight: 700;
     color: var(--brand-700);
   }
   .brand-suffix {
     font-family: 'Geist Mono', ui-monospace, monospace;
     font-weight: 500;
-    color: var(--brand-600);
+    color: var(--brand-700);
     letter-spacing: 0;
     display: inline-block;
-    padding: 2px 6px;
+    padding: 2px 7px;
     border-radius: 5px;
     background: var(--brand-50);
     vertical-align: middle;
+    border: 1px solid var(--brand-100);
   }
   .brand-mark-logo {
     position: relative;
@@ -118,9 +137,10 @@
     background: linear-gradient(135deg, var(--brand-600), var(--brand-800));
     color: #fff;
     border-radius: 50%;
-    font-family: 'Instrument Serif', serif;
-    font-weight: 400;
-    font-style: italic;
+    font-family: 'Geist', sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    letter-spacing: -0.02em;
     box-shadow:
       0 2px 8px -2px rgba(14,58,117,.45),
       inset 0 1px 0 rgba(255,255,255,.18);
@@ -130,7 +150,7 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 60%);
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.22), transparent 60%);
     pointer-events: none;
   }
   .brand-topbar-row {
@@ -141,15 +161,16 @@
   }
   .version-pill {
     font-family: 'Geist Mono', monospace;
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 500;
-    padding: 2px 7px;
-    border-radius: 99px;
+    padding: 3px 9px;
+    border-radius: 6px;
     background: var(--ink-100);
     color: var(--ink-600);
     cursor: pointer;
-    transition: background .12s ease, color .12s ease;
+    transition: background .12s ease, color .12s ease, border-color .12s ease;
     border: 1px solid var(--ink-200);
+    letter-spacing: -0.02em;
   }
   .version-pill:hover { background: var(--brand-50); color: var(--brand-700); border-color: var(--brand-100); }
 
@@ -225,8 +246,8 @@
     background: linear-gradient(135deg, var(--brand-600), var(--brand-800));
     box-shadow: 0 2px 6px -2px rgba(14,58,117,.5);
   }
-  .sidebar-title { font-weight: 600; font-size: 14px; color: var(--ink-900); letter-spacing: -0.01em; }
-  .sidebar-kicker { font-size: 10.5px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em; }
+  .sidebar-title { font-weight: 700; font-size: 14px; color: var(--ink-900); letter-spacing: -0.025em; }
+  .sidebar-kicker { font-size: 10.5px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
 
   .nav-section {
     font-size: 10.5px; font-weight: 500; color: var(--ink-400);
@@ -283,14 +304,20 @@
     text-transform: uppercase; letter-spacing: 0.1em;
   }
   .page-title {
-    font-family: 'Instrument Serif', serif;
-    font-size: 42px;
-    line-height: 1;
+    font-family: 'Geist', sans-serif;
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.1;
     color: var(--ink-900);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.025em;
     margin-top: 4px;
   }
-  .page-title em { color: var(--brand-700); font-style: italic; }
+  /* ehemals kursiver Akzent; jetzt dezenter Color-Akzent in gleicher Schriftart */
+  .page-title em {
+    font-style: normal;
+    color: var(--brand-700);
+    font-weight: 600;
+  }
   .page-sub {
     color: var(--ink-500); font-size: 14px;
     margin-top: 8px;
@@ -310,10 +337,13 @@
     text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500;
   }
   .kpi-value {
-    font-family: 'Instrument Serif', serif;
-    font-size: 38px; line-height: 1.1;
+    font-family: 'Geist', sans-serif;
+    font-weight: 600;
+    font-size: 32px; line-height: 1.1;
+    letter-spacing: -0.025em;
     color: var(--ink-900);
     margin-top: 8px;
+    font-variant-numeric: tabular-nums;
   }
   .kpi-sub {
     font-size: 12px; color: var(--ink-500); margin-top: 6px;
@@ -895,6 +925,8 @@
     padding: 18px 20px;
     border: none; outline: none;
     font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
     border-bottom: 1px solid var(--ink-150);
     font-family: inherit;
   }
@@ -919,7 +951,7 @@
 <div class="pin-gate" id="pinGate">
   <div class="pin-card">
     <div class="flex flex-col items-center text-center mb-7">
-      <div class="brand-mark-logo" style="width:56px;height:56px;font-size:30px;">N</div>
+      <div class="brand-mark-logo" style="width:56px;height:56px;font-size:26px;">N</div>
       <div class="brand-wordmark mt-4" style="font-size:36px;">
         Nicht<em>Ganz</em>
       </div>
@@ -950,7 +982,7 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-mark-logo" style="width:36px;height:36px;font-size:20px;">N</div>
+      <div class="brand-mark-logo" style="width:36px;height:36px;font-size:17px;">N</div>
       <div class="flex-1 min-w-0">
         <div class="brand-wordmark" style="font-size:17px;">
           Nicht<em>Ganz</em>
@@ -1058,8 +1090,19 @@
 /* =========================================================
    NichtGanz-21c · Admin-Panel
    ========================================================= */
-const ADMIN_VERSION = '0.2.0';
+const ADMIN_VERSION = '0.2.1';
 const ADMIN_CHANGELOG = [
+  {
+    version: '0.2.1',
+    date: '24.04.2026',
+    changes: [
+      'Design-Refresh: Komplette Sans-Serif-Umstellung (Geist)',
+      'Keine Kursiv-Schrift mehr — moderne SaaS-Ästhetik',
+      'KPI-Werte und Page-Titel in klaren Sans-Serif-Weights',
+      'Marke "NichtGanz-21c" als Wordmark mit Mono-Pill "-21c"',
+      'Tighter Letter-Spacing und Linear-Style-Look'
+    ]
+  },
   {
     version: '0.2.0',
     date: '24.04.2026',
