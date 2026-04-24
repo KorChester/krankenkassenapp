@@ -2,13 +2,18 @@
 <!--
   ====================================================================
   MusterKasse · Versicherten-App
-  Version: v0.5.0
+  Version: v0.5.1
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.5.1 (2026-04-24) · Security-Fix
+    ~ Sichtbaren PIN-Hinweis von Login-Seite entfernt
+    ~ Login-Passwort geändert
+    ~ Placeholder-Text angepasst
+
   v0.5.0 (2026-04-24) · Login-Schutz
-    + Login-Gate mit Versichertennummer + PIN (Demo-PIN: 1234)
+    + Login-Gate mit Versichertennummer + PIN
     + Gate übernimmt Branding: Farben, Logo, Kassenname
     + Shake-Animation bei falschem PIN
     + App wird erst nach erfolgreichem Login initialisiert
@@ -48,11 +53,11 @@
     + initialen() robust gegen leere Namen gemacht
   ====================================================================
 -->
-<html lang="de" data-app-version="0.5.0">
+<html lang="de" data-app-version="0.5.1">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MusterKasse · v0.5.0</title>
+<title>MusterKasse · v0.5.1</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -704,7 +709,7 @@
       </div>
       <div>
         <label class="login-lbl">PIN</label>
-        <input id="loginPin" class="login-inp mono" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+        <input id="loginPin" class="login-inp mono" type="password" placeholder="Passwort eingeben" autocomplete="off">
       </div>
       <button type="submit" class="login-btn">
         <span>Anmelden</span>
@@ -714,11 +719,6 @@
       <div id="loginError" class="login-error" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <span>PIN ist nicht korrekt</span>
-      </div>
-
-      <div class="login-hint">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;opacity:0.6;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        Demo-PIN: <span class="mono">1234</span>
       </div>
     </form>
   </div>
@@ -914,14 +914,22 @@ window.lucide = {
 /* =========================================================
    MusterKasse – Versicherten-App
    ========================================================= */
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.5.1';
 const APP_CHANGELOG = [
+  {
+    version: '0.5.1',
+    date: '24.04.2026',
+    changes: [
+      'Security: Sichtbaren PIN-Hinweis von Login entfernt',
+      'Login-Passwort aktualisiert',
+      'Placeholder angepasst'
+    ]
+  },
   {
     version: '0.5.0',
     date: '24.04.2026',
     changes: [
       'Login-Gate: App ist jetzt PIN-geschützt',
-      'Demo-PIN: 1234',
       'Login-Gate übernimmt Branding der Kasse',
       'Shake-Animation bei falschem PIN'
     ]
@@ -2849,7 +2857,7 @@ async function init() {
 }
 
 /* ============ LOGIN-GATE ============ */
-const APP_PIN = '1234';  // Demo-PIN
+const APP_PIN = 'BITMARCK2026';
 
 function initLoginGate() {
   const form = document.getElementById('loginForm');
