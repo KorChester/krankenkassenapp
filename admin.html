@@ -1,0 +1,2105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MusterKasse · Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-900: #0A1F3D;
+    --brand-800: #0B2A56;
+    --brand-700: #0E3A75;
+    --brand-600: #124A96;
+    --brand-500: #1B5FB5;
+    --brand-100: #E8EFF9;
+    --brand-50:  #F4F7FC;
+
+    --sage-700: #2E5A42;
+    --sage-600: #3F7D5A;
+    --sage-500: #4F9A6E;
+    --sage-100: #E6F2EB;
+
+    --amber-700: #8B5A0A;
+    --amber-600: #B4770E;
+    --amber-100: #FCF1DC;
+
+    --rose-700: #8A2F3D;
+    --rose-600: #B84454;
+    --rose-100: #FBE8EA;
+
+    --ink-900: #0C1521;
+    --ink-800: #1C2836;
+    --ink-700: #2C3848;
+    --ink-600: #445163;
+    --ink-500: #5A6879;
+    --ink-400: #8B96A5;
+    --ink-300: #C2CAD4;
+    --ink-200: #E4E8EE;
+    --ink-150: #ECEFF3;
+    --ink-100: #F1F3F7;
+    --ink-50:  #F8FAFC;
+    --ink-25:  #FBFCFD;
+  }
+
+  * { -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background: var(--ink-25);
+    color: var(--ink-900);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01";
+  }
+  .serif { font-family: 'Instrument Serif', ui-serif, Georgia, serif; letter-spacing: -0.01em; }
+  .mono  { font-family: 'Geist Mono', ui-monospace, Menlo, Monaco, monospace; }
+  .num   { font-variant-numeric: tabular-nums; }
+
+  /* ============ PIN GATE ============ */
+  .pin-gate {
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(1000px 500px at 20% 10%, rgba(18,74,150,0.08), transparent 60%),
+      radial-gradient(800px 400px at 80% 90%, rgba(79,154,110,0.08), transparent 60%),
+      #FBFCFD;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .pin-card {
+    background: #fff;
+    border: 1px solid var(--ink-200);
+    border-radius: 20px;
+    padding: 40px 36px;
+    width: 380px;
+    box-shadow: 0 20px 40px -12px rgba(12, 21, 33, 0.1), 0 4px 12px -4px rgba(12, 21, 33, 0.04);
+  }
+  .pin-input {
+    width: 100%;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 18px;
+    text-align: center;
+    letter-spacing: 3px;
+    padding: 16px 16px;
+    border: 1.5px solid var(--ink-200);
+    border-radius: 12px;
+    background: var(--ink-50);
+    color: var(--ink-900);
+    transition: border-color .15s ease, background .15s ease;
+    text-transform: none;
+  }
+  .pin-input:focus {
+    outline: none;
+    border-color: var(--brand-500);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(27,95,181,.12);
+  }
+  .pin-input.shake { animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25%     { transform: translateX(-6px); }
+    75%     { transform: translateX(6px); }
+  }
+
+  /* ============ LAYOUT ============ */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: #fff;
+    border-right: 1px solid var(--ink-150);
+    padding: 20px 14px;
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .sidebar-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 6px 22px 6px;
+    border-bottom: 1px solid var(--ink-150);
+    margin-bottom: 14px;
+  }
+  .sidebar-brand-mark {
+    width: 30px; height: 30px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--brand-600), var(--brand-800));
+    box-shadow: 0 2px 6px -2px rgba(14,58,117,.5);
+  }
+  .sidebar-title { font-weight: 600; font-size: 14px; color: var(--ink-900); letter-spacing: -0.01em; }
+  .sidebar-kicker { font-size: 10.5px; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .nav-section {
+    font-size: 10.5px; font-weight: 500; color: var(--ink-400);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 14px 10px 6px 10px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    font-size: 13.5px; font-weight: 500; color: var(--ink-700);
+    transition: background .12s ease, color .12s ease;
+    cursor: pointer; width: 100%; text-align: left;
+    position: relative;
+  }
+  .nav-item:hover { background: var(--ink-100); color: var(--ink-900); }
+  .nav-item.active {
+    background: var(--brand-50);
+    color: var(--brand-700);
+    font-weight: 600;
+  }
+  .nav-item .count {
+    margin-left: auto;
+    font-size: 11px; font-weight: 600;
+    background: var(--ink-150); color: var(--ink-700);
+    padding: 2px 7px; border-radius: 99px;
+    min-width: 20px; text-align: center;
+  }
+  .nav-item.active .count { background: var(--brand-600); color: #fff; }
+
+  /* Main */
+  .main {
+    display: flex; flex-direction: column;
+    min-width: 0;
+  }
+  .topbar {
+    height: 64px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: saturate(150%) blur(10px);
+    -webkit-backdrop-filter: saturate(150%) blur(10px);
+    border-bottom: 1px solid var(--ink-150);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    position: sticky; top: 0; z-index: 30;
+  }
+  .content-wrap {
+    padding: 28px 32px 48px 32px;
+    max-width: 1400px;
+    width: 100%;
+  }
+
+  /* Page header */
+  .page-eyebrow {
+    font-size: 11px; font-weight: 500; color: var(--ink-500);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .page-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 42px;
+    line-height: 1;
+    color: var(--ink-900);
+    letter-spacing: -0.01em;
+    margin-top: 4px;
+  }
+  .page-title em { color: var(--brand-700); font-style: italic; }
+  .page-sub {
+    color: var(--ink-500); font-size: 14px;
+    margin-top: 8px;
+  }
+
+  /* KPI cards */
+  .kpi {
+    background: #fff;
+    border: 1px solid var(--ink-150);
+    border-radius: 14px;
+    padding: 18px 20px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .kpi:hover { border-color: var(--ink-300); box-shadow: 0 2px 8px -4px rgba(12,21,33,.06); }
+  .kpi-label {
+    font-size: 11.5px; color: var(--ink-500);
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500;
+  }
+  .kpi-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 38px; line-height: 1.1;
+    color: var(--ink-900);
+    margin-top: 8px;
+  }
+  .kpi-sub {
+    font-size: 12px; color: var(--ink-500); margin-top: 6px;
+  }
+
+  /* Cards / Panels */
+  .panel {
+    background: #fff;
+    border: 1px solid var(--ink-150);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--ink-150);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title { font-size: 13.5px; font-weight: 600; color: var(--ink-900); letter-spacing: -0.005em; }
+
+  /* Tables */
+  .tbl {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .tbl thead th {
+    text-align: left;
+    font-size: 11px; font-weight: 600; color: var(--ink-500);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 10px 16px;
+    background: var(--ink-50);
+    border-bottom: 1px solid var(--ink-150);
+  }
+  .tbl tbody td {
+    padding: 14px 16px;
+    font-size: 13.5px;
+    border-bottom: 1px solid var(--ink-100);
+    vertical-align: middle;
+  }
+  .tbl tbody tr { transition: background .12s ease; }
+  .tbl tbody tr:hover { background: var(--ink-50); }
+  .tbl tbody tr.clickable { cursor: pointer; }
+  .tbl tbody tr:last-child td { border-bottom: none; }
+
+  /* Chips */
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; font-weight: 600;
+    padding: 3px 8px; border-radius: 6px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .chip-blue  { background: var(--brand-100);  color: var(--brand-700); border-color: #CDDBF2; }
+  .chip-green { background: var(--sage-100);   color: var(--sage-700);  border-color: #CDE3D5; }
+  .chip-amber { background: var(--amber-100);  color: var(--amber-700); border-color: #F0DDB4; }
+  .chip-rose  { background: var(--rose-100);   color: var(--rose-700);  border-color: #F2CDD1; }
+  .chip-gray  { background: var(--ink-100);    color: var(--ink-700);   border-color: var(--ink-200); }
+
+  .chip-dot::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+    opacity: 0.7;
+  }
+
+  /* Status-Button (inline editable) */
+  .status-btn {
+    cursor: pointer;
+    transition: transform .1s ease, box-shadow .15s ease;
+  }
+  .status-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px -4px rgba(12,21,33,.15); }
+
+  /* Status-Dropdown */
+  .status-dropdown {
+    position: absolute;
+    background: #fff;
+    border: 1px solid var(--ink-200);
+    border-radius: 10px;
+    box-shadow: 0 12px 30px -8px rgba(12,21,33,.18), 0 0 0 1px rgba(12,21,33,.02);
+    padding: 4px;
+    z-index: 50;
+    min-width: 180px;
+    animation: pop-in .12s ease-out;
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(-4px) scale(.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .status-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 7px;
+    cursor: pointer;
+    font-size: 13px; font-weight: 500;
+    transition: background .1s ease;
+  }
+  .status-option:hover { background: var(--ink-50); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 7px; font-weight: 500; font-size: 13px;
+    padding: 8px 14px; border-radius: 9px;
+    transition: all .12s ease;
+    white-space: nowrap;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary {
+    background: var(--brand-700); color: #fff;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 4px 10px -4px rgba(14,58,117,.5);
+  }
+  .btn-primary:hover { background: var(--brand-800); }
+  .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-secondary {
+    background: #fff; color: var(--ink-900);
+    border: 1px solid var(--ink-200);
+  }
+  .btn-secondary:hover { background: var(--ink-50); border-color: var(--ink-300); }
+  .btn-ghost {
+    background: transparent; color: var(--ink-700);
+  }
+  .btn-ghost:hover { background: var(--ink-100); color: var(--ink-900); }
+  .btn-danger {
+    background: #fff; color: var(--rose-700);
+    border: 1px solid var(--rose-100);
+  }
+  .btn-danger:hover { background: var(--rose-100); }
+
+  /* Icon-Buttons */
+  .icon-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ink-500);
+    transition: all .12s ease;
+  }
+  .icon-btn:hover { background: var(--ink-100); color: var(--ink-900); }
+
+  /* Inputs */
+  .inp {
+    width: 100%;
+    padding: 9px 12px;
+    background: #fff;
+    border: 1px solid var(--ink-200);
+    border-radius: 9px;
+    font-size: 13.5px;
+    color: var(--ink-900);
+    transition: border-color .15s ease, box-shadow .15s ease;
+    font-family: inherit;
+  }
+  .inp:focus {
+    outline: none;
+    border-color: var(--brand-500);
+    box-shadow: 0 0 0 3px rgba(27,95,181,.1);
+  }
+  .lbl { font-size: 12px; font-weight: 500; color: var(--ink-700); margin-bottom: 6px; display: block; }
+  textarea.inp { resize: vertical; min-height: 80px; font-family: inherit; line-height: 1.5; }
+
+  /* Search */
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--ink-100);
+    padding: 7px 12px; border-radius: 9px;
+    width: 320px;
+    transition: background .12s ease, box-shadow .12s ease;
+  }
+  .search:focus-within { background: #fff; box-shadow: 0 0 0 1.5px var(--brand-500); }
+  .search input {
+    background: transparent; border: none; outline: none;
+    flex: 1; font-size: 13px; color: var(--ink-900);
+    font-family: inherit;
+  }
+  .search kbd {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-500);
+    padding: 1px 6px;
+    border: 1px solid var(--ink-200);
+    border-radius: 5px;
+    background: #fff;
+  }
+
+  /* Avatar */
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 600; font-size: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(12,21,33,.08), inset 0 1px 0 rgba(255,255,255,.15);
+  }
+
+  /* Timeline (Antrags-Detail) */
+  .tl { position: relative; padding-left: 22px; }
+  .tl::before {
+    content:""; position: absolute; left: 8px; top: 6px; bottom: 6px;
+    width: 2px; background: var(--ink-200);
+  }
+  .tl-item { position: relative; padding-bottom: 16px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-dot {
+    position: absolute; left: -18px; top: 3px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--ink-300);
+  }
+  .tl-item.done .tl-dot     { background: var(--sage-500); border-color: var(--sage-500); }
+  .tl-item.current .tl-dot  { background: var(--brand-600); border-color: var(--brand-600); box-shadow: 0 0 0 4px var(--brand-100); }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(12,21,33,.4);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    animation: fade-in .15s ease;
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: #fff;
+    border-radius: 18px;
+    width: 100%; max-width: 560px;
+    max-height: 85vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 30px 60px -15px rgba(12,21,33,.3);
+    overflow: hidden;
+    animation: modal-up .22s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes modal-up {
+    from { transform: translateY(20px) scale(.98); opacity: 0; }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .modal-wide { max-width: 800px; }
+
+  /* Toast */
+  .toast-wrap {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    z-index: 150;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none;
+    max-width: 400px;
+  }
+  .toast {
+    background: var(--ink-900); color: #fff;
+    padding: 12px 16px; border-radius: 10px;
+    font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 12px 28px -8px rgba(0,0,0,.3);
+    animation: toast-in .25s ease-out;
+    pointer-events: auto;
+  }
+  .toast.success { background: var(--sage-600); }
+  .toast.info    { background: var(--brand-700); }
+  .toast.warn    { background: var(--amber-600); }
+  .toast.error   { background: var(--rose-600); }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--ink-500);
+  }
+  .empty-icon {
+    width: 48px; height: 48px;
+    background: var(--ink-100);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 14px auto;
+    color: var(--ink-400);
+  }
+
+  /* Loading */
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2.5px solid var(--ink-150);
+    border-top-color: var(--brand-600);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-box {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 80px 20px;
+    gap: 14px;
+    color: var(--ink-500); font-size: 13px;
+  }
+
+  /* Detail drawer */
+  .drawer-backdrop {
+    position: fixed; inset: 0; z-index: 90;
+    background: rgba(12,21,33,.35);
+    backdrop-filter: blur(2px);
+    animation: fade-in .15s ease;
+  }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 560px; max-width: 92vw;
+    background: #fff;
+    z-index: 91;
+    box-shadow: -20px 0 40px -15px rgba(12,21,33,.2);
+    animation: drawer-in .25s cubic-bezier(.2,.8,.2,1);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  @keyframes drawer-in {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+  }
+  .drawer-header {
+    padding: 20px 24px 18px 24px;
+    border-bottom: 1px solid var(--ink-150);
+    display: flex; align-items: flex-start; justify-content: space-between;
+  }
+  .drawer-body {
+    flex: 1; overflow-y: auto;
+    padding: 20px 24px 32px 24px;
+  }
+
+  /* Details row */
+  .kv-grid {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    row-gap: 10px;
+    font-size: 13.5px;
+  }
+  .kv-grid dt { color: var(--ink-500); font-weight: 500; }
+  .kv-grid dd { color: var(--ink-900); }
+
+  /* Nice selection */
+  ::selection { background: rgba(27,95,181,.2); }
+
+  /* Scrollbars subtil */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--ink-200); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-300); }
+
+  /* Small utility */
+  .divider { height: 1px; background: var(--ink-150); margin: 18px 0; }
+
+  /* Command palette (Cmd+K) */
+  .cmdk-backdrop {
+    position: fixed; inset: 0; z-index: 120;
+    background: rgba(12,21,33,.4);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding-top: 12vh;
+    animation: fade-in .15s ease;
+  }
+  .cmdk {
+    background: #fff;
+    width: 100%; max-width: 560px;
+    border-radius: 14px;
+    box-shadow: 0 30px 60px -15px rgba(12,21,33,.3);
+    overflow: hidden;
+    animation: modal-up .18s cubic-bezier(.2,.8,.2,1);
+  }
+  .cmdk-input {
+    width: 100%;
+    padding: 18px 20px;
+    border: none; outline: none;
+    font-size: 15px;
+    border-bottom: 1px solid var(--ink-150);
+    font-family: inherit;
+  }
+  .cmdk-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 6px;
+  }
+  .cmdk-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13.5px;
+  }
+  .cmdk-item:hover, .cmdk-item.active { background: var(--ink-100); }
+</style>
+</head>
+<body>
+
+<!-- ============ PIN GATE ============ -->
+<div class="pin-gate" id="pinGate">
+  <div class="pin-card">
+    <div class="flex items-center gap-2.5 mb-6">
+      <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand-600),var(--brand-800));display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><path d="M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z" fill="#fff"/></svg>
+      </div>
+      <div class="text-[13px] font-semibold">MusterKasse · Admin</div>
+    </div>
+    <div class="serif" style="font-size:26px;line-height:1.1;letter-spacing:-0.01em;">
+      Zugang zur <em style="color:var(--brand-700)">Verwaltung</em>
+    </div>
+    <p class="text-[13px] text-[var(--ink-500)] mt-2">Geben Sie das Admin-Passwort ein, um fortzufahren.</p>
+    <form id="pinForm" class="mt-6">
+      <input id="pinInput" class="pin-input" type="password" maxlength="32" autocomplete="off" autofocus placeholder="Passwort">
+      <button type="submit" class="btn btn-primary w-full mt-4" style="padding: 11px 14px;">
+        Entsperren
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+    <div class="mt-5 text-[11px] text-[var(--ink-400)] text-center">
+      Nur für autorisierte Nutzer
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div class="app-shell hidden" id="appShell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;"><path d="M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z" fill="#fff"/></svg>
+      </div>
+      <div>
+        <div class="sidebar-title">MusterKasse</div>
+        <div class="sidebar-kicker">Admin</div>
+      </div>
+    </div>
+
+    <nav class="flex-1">
+      <div class="nav-section">Übersicht</div>
+      <button class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Dashboard
+      </button>
+
+      <div class="nav-section">Verwaltung</div>
+      <button class="nav-item" data-view="versicherte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Versicherte
+        <span class="count" id="cnt-versicherte">0</span>
+      </button>
+      <button class="nav-item" data-view="antraege">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        Anträge
+        <span class="count" id="cnt-antraege">0</span>
+      </button>
+      <button class="nav-item" data-view="postfach">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+        Postfach
+        <span class="count" id="cnt-postfach">0</span>
+      </button>
+      <button class="nav-item" data-view="uploads">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        AU-Uploads
+        <span class="count" id="cnt-uploads">0</span>
+      </button>
+      <button class="nav-item" data-view="familie">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 11h-6"/><path d="M20 8v6"/></svg>
+        Familie
+      </button>
+    </nav>
+
+    <div style="padding: 12px 10px; border-top: 1px solid var(--ink-150); margin-top: 14px;">
+      <div class="text-[10.5px] text-[var(--ink-400)] mb-1">Verbunden mit</div>
+      <div class="mono text-[11px] text-[var(--ink-700)] truncate" style="max-width: 210px;">supabase.physiques-unlimited.de</div>
+      <div class="flex items-center gap-1.5 mt-1.5">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--sage-500);box-shadow:0 0 0 3px var(--sage-100);"></span>
+        <span class="text-[10.5px] text-[var(--sage-700)] font-medium">Online</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="flex items-center gap-5">
+        <button class="search" onclick="openCmdK()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;color:var(--ink-500);"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="topSearch" placeholder="Versicherte suchen …" readonly style="cursor:pointer;">
+          <kbd>⌘K</kbd>
+        </button>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="icon-btn" onclick="refreshAll()" title="Neu laden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        </button>
+        <a href="#" class="btn btn-secondary" id="openAppBtn" onclick="openApp(event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          Versicherten-App öffnen
+        </a>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div id="content" class="content-wrap"></div>
+  </main>
+</div>
+
+<!-- Toasts -->
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- Modals + Drawers werden dynamisch eingefügt -->
+<div id="modalHost"></div>
+<div id="drawerHost"></div>
+<div id="cmdkHost"></div>
+
+<script>
+/* =========================================================
+   SUPABASE
+   ========================================================= */
+const SUPABASE_URL      = 'https://supabase.physiques-unlimited.de';
+const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3NDk1NTc2MCwiZXhwIjo0OTMwNjI5MzYwLCJyb2xlIjoiYW5vbiJ9.oOYnXD3j3A2VTIaFN9Ratq1X-rhGgTw8blBBRFkuP50';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const T = {
+  versicherte:  'mk_versicherte',
+  familie:      'mk_familienmitglieder',
+  antraege:     'mk_antraege',
+  timeline:     'mk_antrag_timeline',
+  nachrichten:  'mk_nachrichten',
+  uploads:      'mk_au_uploads'
+};
+const BUCKET = 'mk-au-uploads';
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const state = {
+  view: 'dashboard',
+  versicherte: [],
+  antraege: [],
+  nachrichten: [],
+  uploads: [],
+  familie: [],
+  // Filter-UI
+  filters: {
+    antraege: { status: 'alle', versicherter: 'alle' },
+    postfach: { gelesen: 'alle' }
+  }
+};
+
+/* =========================================================
+   UTIL
+   ========================================================= */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const escapeHTML = (s='') => String(s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+function isoToDE(s) {
+  if (!s) return '';
+  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : s;
+}
+function deToISO(s) {
+  if (!s) return null;
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+}
+function relativeTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'gerade eben';
+  if (diff < 3600) return `vor ${Math.floor(diff/60)} Min`;
+  if (diff < 86400) return `vor ${Math.floor(diff/3600)} Std`;
+  if (diff < 86400*7) return `vor ${Math.floor(diff/86400)} Tagen`;
+  return isoToDE(iso);
+}
+function initials(name) {
+  const p = String(name || '').trim().split(' ').filter(Boolean);
+  return ((p[0]?.[0] || '') + (p[p.length-1]?.[0] || '')).toUpperCase();
+}
+function avatarColor(id) {
+  const palettes = [
+    ['#1B5FB5','#0A1F3D'], ['#B84454','#7A1F2C'], ['#B4770E','#6B4308'],
+    ['#3F7D5A','#1F4A32'], ['#6E3FBA','#3A1D6E'], ['#0E7490','#0C4A6E']
+  ];
+  const sum = String(id || '').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  return palettes[sum % palettes.length];
+}
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+function toast(msg, type='success') {
+  const host = $('#toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = {
+    success: '<path d="M20 6 9 17l-5-5"/>',
+    info:    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+    warn:    '<path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    error:   '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+  };
+  el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;">${icons[type]}</svg><span>${escapeHTML(msg)}</span>`;
+  host.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity .25s, transform .25s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(6px)';
+    setTimeout(() => el.remove(), 260);
+  }, 2800);
+}
+
+/* =========================================================
+   API
+   ========================================================= */
+const api = {
+  async loadAll() {
+    const [vers, antr, nachr, upl, fam] = await Promise.all([
+      sb.from(T.versicherte).select('*').order('nachname'),
+      sb.from(T.antraege).select('*').order('created_at', { ascending: false }),
+      sb.from(T.nachrichten).select('*').order('created_at', { ascending: false }),
+      sb.from(T.uploads).select('*').order('hochgeladen_am', { ascending: false }),
+      sb.from(T.familie).select('*').order('name')
+    ]);
+    const err = vers.error || antr.error || nachr.error || upl.error || fam.error;
+    if (err) throw err;
+    state.versicherte = vers.data || [];
+    state.antraege    = antr.data  || [];
+    state.nachrichten = nachr.data || [];
+    state.uploads     = upl.data   || [];
+    state.familie     = fam.data   || [];
+  },
+  async loadTimeline(antragId) {
+    const { data, error } = await sb.from(T.timeline).select('*').eq('antrag_id', antragId).order('sortierung');
+    if (error) throw error;
+    return data;
+  },
+  async updateAntragStatus(id, status) {
+    const { error } = await sb.from(T.antraege).update({ status }).eq('id', id);
+    if (error) throw error;
+  },
+  async deleteAntrag(id) {
+    const { error } = await sb.from(T.antraege).delete().eq('id', id);
+    if (error) throw error;
+  },
+  async addTimelineEntry(antragId, datum, text, status='done') {
+    // max sortierung holen
+    const { data } = await sb.from(T.timeline).select('sortierung').eq('antrag_id', antragId).order('sortierung', { ascending: false }).limit(1);
+    const nextSort = (data?.[0]?.sortierung || 0) + 1;
+    const { error } = await sb.from(T.timeline).insert({ antrag_id: antragId, datum, text, status, sortierung: nextSort });
+    if (error) throw error;
+  },
+  async sendNachricht({ versicherter_id, betreff, absender, text, wichtig, anhang_name }) {
+    const heute = new Date().toISOString().slice(0,10);
+    const { error } = await sb.from(T.nachrichten).insert({
+      versicherter_id, betreff, absender: absender || 'MusterKasse · Sachbearbeitung',
+      text, wichtig: !!wichtig, anhang_name: anhang_name || null,
+      datum: heute, gelesen: false
+    });
+    if (error) throw error;
+  },
+  async deleteNachricht(id) {
+    const { error } = await sb.from(T.nachrichten).delete().eq('id', id);
+    if (error) throw error;
+  },
+  async markNachricht(id, gelesen) {
+    const { error } = await sb.from(T.nachrichten).update({ gelesen }).eq('id', id);
+    if (error) throw error;
+  },
+  async deleteUpload(item) {
+    const { error: se } = await sb.storage.from(BUCKET).remove([item.storage_pfad]);
+    if (se) console.warn('Storage-Fehler:', se);
+    const { error } = await sb.from(T.uploads).delete().eq('id', item.id);
+    if (error) throw error;
+  },
+  getUploadPublicUrl(storage_pfad) {
+    const { data } = sb.storage.from(BUCKET).getPublicUrl(storage_pfad);
+    return data?.publicUrl || '';
+  },
+  async addFamilie({ versicherter_id, name, rolle, geburtsdatum, status }) {
+    const { error } = await sb.from(T.familie).insert({ versicherter_id, name, rolle, geburtsdatum, status });
+    if (error) throw error;
+  },
+  async deleteFamilie(id) {
+    const { error } = await sb.from(T.familie).delete().eq('id', id);
+    if (error) throw error;
+  },
+  async updateVersicherter(id, patch) {
+    const { error } = await sb.from(T.versicherte).update(patch).eq('id', id);
+    if (error) throw error;
+  }
+};
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function versName(id) {
+  const v = state.versicherte.find(v => v.id === id);
+  return v ? `${v.vorname} ${v.nachname}` : '—';
+}
+function versNr(id) {
+  const v = state.versicherte.find(v => v.id === id);
+  return v ? v.versichertennummer : '';
+}
+function statusChip(status, editable=false, antragId=null) {
+  const map = {
+    'Eingegangen':    'chip-blue',
+    'In Bearbeitung': 'chip-amber',
+    'Erledigt':       'chip-green',
+    'Abgelehnt':      'chip-rose'
+  };
+  const cls = map[status] || 'chip-gray';
+  if (editable) {
+    return `<button class="chip ${cls} status-btn chip-dot" onclick="openStatusDropdown(event, '${antragId}')">${status}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;opacity:0.7;"><path d="m6 9 6 6 6-6"/></svg></button>`;
+  }
+  return `<span class="chip ${cls} chip-dot">${status}</span>`;
+}
+function iconSvg(name, size=16) {
+  const paths = {
+    'mail': '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/>',
+    'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+    'users': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    'upload': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+    'x': '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    'check': '<path d="M20 6 9 17l-5-5"/>',
+    'trash': '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    'plus': '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    'search': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    'edit': '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+    'download': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    'eye': '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+    'arrow-right': '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+    'paperclip': '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+    'star': '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    'inbox': '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    'activity': '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    'send': '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+    'alert': '<path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    'refresh': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>',
+    'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+    'calendar': '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    'clock': '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    'image': '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+    'pdf': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:${size}px;height:${size}px;">${paths[name] || ''}</svg>`;
+}
+
+/* =========================================================
+   PIN GATE
+   ========================================================= */
+function initPinGate() {
+  const form = $('#pinForm');
+  const input = $('#pinInput');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    if (input.value === 'BITMARCK2026') {
+      $('#pinGate').style.display = 'none';
+      $('#appShell').classList.remove('hidden');
+      boot();
+    } else {
+      input.classList.add('shake');
+      setTimeout(()=> input.classList.remove('shake'), 500);
+      input.value = '';
+    }
+  });
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+async function boot() {
+  try {
+    $('#content').innerHTML = `<div class="loading-box"><div class="spinner"></div><div>Lade Daten …</div></div>`;
+    await api.loadAll();
+    bindNav();
+    renderView();
+    updateSidebarCounts();
+  } catch (e) {
+    console.error(e);
+    $('#content').innerHTML = `
+      <div class="panel">
+        <div style="padding: 40px; text-align:center;">
+          <div style="width: 56px; height: 56px; background: var(--rose-100); color: var(--rose-700); border-radius: 14px; display:flex;align-items:center;justify-content:center;margin:0 auto;">
+            ${iconSvg('alert', 26)}
+          </div>
+          <div class="serif" style="font-size:24px;margin-top:16px;">Verbindung fehlgeschlagen</div>
+          <p class="text-[13px] text-[var(--ink-500)] mt-2 mono">${escapeHTML(e.message || String(e))}</p>
+          <button class="btn btn-secondary mt-4" onclick="boot()">Erneut versuchen</button>
+        </div>
+      </div>`;
+  }
+}
+
+async function refreshAll() {
+  try {
+    await api.loadAll();
+    renderView();
+    updateSidebarCounts();
+    toast('Daten aktualisiert', 'info');
+  } catch (e) {
+    toast('Fehler: ' + (e.message || e), 'error');
+  }
+}
+
+function updateSidebarCounts() {
+  $('#cnt-versicherte').textContent = state.versicherte.length;
+  $('#cnt-antraege').textContent    = state.antraege.filter(a => a.status !== 'Erledigt' && a.status !== 'Abgelehnt').length;
+  $('#cnt-postfach').textContent    = state.nachrichten.filter(n => !n.gelesen).length;
+  $('#cnt-uploads').textContent     = state.uploads.length;
+}
+
+function bindNav() {
+  $$('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.nav-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.view = btn.dataset.view;
+      renderView();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  });
+}
+
+function renderView() {
+  const c = $('#content');
+  switch (state.view) {
+    case 'dashboard':    c.innerHTML = renderDashboard();   break;
+    case 'versicherte':  c.innerHTML = renderVersicherte(); break;
+    case 'antraege':     c.innerHTML = renderAntraege();    break;
+    case 'postfach':     c.innerHTML = renderPostfach();    break;
+    case 'uploads':      c.innerHTML = renderUploads();     break;
+    case 'familie':      c.innerHTML = renderFamilie();     break;
+  }
+}
+
+/* =========================================================
+   VIEW: DASHBOARD
+   ========================================================= */
+function renderDashboard() {
+  const offen = state.antraege.filter(a => a.status !== 'Erledigt' && a.status !== 'Abgelehnt');
+  const ungelesen = state.nachrichten.filter(n => !n.gelesen);
+  const letzteAktivitaet = [...state.antraege, ...state.nachrichten, ...state.uploads]
+    .map(item => ({
+      kind: item.typ ? 'antrag' : (item.betreff ? 'nachricht' : 'upload'),
+      item,
+      time: item.created_at || item.hochgeladen_am
+    }))
+    .sort((a,b) => (b.time || '').localeCompare(a.time || ''))
+    .slice(0, 8);
+
+  return `
+    <div>
+      <div class="page-eyebrow">Übersicht</div>
+      <h1 class="page-title">Dashboard · <em>MusterKasse</em></h1>
+      <p class="page-sub">Live-Daten direkt aus der Datenbank.</p>
+    </div>
+
+    <div class="grid grid-cols-4 gap-4 mt-7">
+      <div class="kpi">
+        <div class="kpi-label">Versicherte</div>
+        <div class="kpi-value num">${state.versicherte.length}</div>
+        <div class="kpi-sub">aktiv in der Datenbank</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Offene Anträge</div>
+        <div class="kpi-value num">${offen.length}</div>
+        <div class="kpi-sub">von ${state.antraege.length} insgesamt</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ungelesen</div>
+        <div class="kpi-value num">${ungelesen.length}</div>
+        <div class="kpi-sub">Nachrichten an Versicherte</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">AU-Uploads</div>
+        <div class="kpi-value num">${state.uploads.length}</div>
+        <div class="kpi-sub">Dateien im Storage</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-5 mt-6">
+      <!-- Offene Anträge (links) -->
+      <div class="panel col-span-2">
+        <div class="panel-header">
+          <div class="panel-title">Offene Anträge</div>
+          <button class="btn btn-ghost" onclick="navTo('antraege')">Alle ansehen ${iconSvg('arrow-right',13)}</button>
+        </div>
+        ${offen.length === 0
+          ? `<div class="empty"><div class="empty-icon">${iconSvg('check',22)}</div>Keine offenen Anträge</div>`
+          : `<table class="tbl"><thead><tr>
+              <th>Versicherter</th><th>Typ</th><th>Betreff</th><th>Status</th><th></th>
+            </tr></thead><tbody>
+              ${offen.slice(0,5).map(a => `
+                <tr class="clickable" onclick="openAntragDrawer('${a.id}')">
+                  <td>${renderMiniUser(a.versicherter_id)}</td>
+                  <td class="text-[var(--ink-700)]">${escapeHTML(a.typ)}</td>
+                  <td class="text-[var(--ink-600)] truncate" style="max-width:260px">${escapeHTML(a.betreff)}</td>
+                  <td>${statusChip(a.status)}</td>
+                  <td class="text-right text-[var(--ink-400)]">${iconSvg('chevron-right',14)}</td>
+                </tr>`).join('')}
+            </tbody></table>`
+        }
+      </div>
+
+      <!-- Aktivität rechts -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Letzte Aktivität</div>
+        </div>
+        <div style="padding: 8px 4px;">
+          ${letzteAktivitaet.length === 0
+            ? `<div class="empty"><div class="empty-icon">${iconSvg('activity',22)}</div>Noch keine Aktivität</div>`
+            : letzteAktivitaet.map(a => activityItem(a)).join('')
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Nachrichten + Uploads unten -->
+    <div class="grid grid-cols-2 gap-5 mt-5">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Ungelesene Nachrichten</div>
+          <button class="btn btn-ghost" onclick="navTo('postfach')">Zum Postfach ${iconSvg('arrow-right',13)}</button>
+        </div>
+        ${ungelesen.length === 0
+          ? `<div class="empty"><div class="empty-icon">${iconSvg('mail',22)}</div>Alle Nachrichten sind gelesen</div>`
+          : ungelesen.slice(0,5).map(n => `
+            <div style="padding: 12px 18px; border-bottom: 1px solid var(--ink-100); display:flex; gap:12px;">
+              <div style="width:8px; height:8px; border-radius:50%; background:var(--brand-600); margin-top:7px; flex-shrink:0;"></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13.5px] font-semibold truncate">${escapeHTML(n.betreff)}</div>
+                <div class="text-[11.5px] text-[var(--ink-500)] truncate">An ${escapeHTML(versName(n.versicherter_id))} · ${isoToDE(n.datum)}</div>
+              </div>
+            </div>`).join('')
+        }
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Neueste Uploads</div>
+          <button class="btn btn-ghost" onclick="navTo('uploads')">Alle ${iconSvg('arrow-right',13)}</button>
+        </div>
+        ${state.uploads.length === 0
+          ? `<div class="empty"><div class="empty-icon">${iconSvg('upload',22)}</div>Noch keine Uploads</div>`
+          : state.uploads.slice(0,5).map(u => `
+            <div style="padding: 12px 18px; border-bottom: 1px solid var(--ink-100); display:flex; gap:12px; align-items:center;">
+              <div style="width:32px;height:32px;border-radius:8px;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center;">
+                ${iconSvg(u.mime_type?.startsWith('image') ? 'image' : 'pdf', 14)}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-medium truncate">${escapeHTML(u.dateiname)}</div>
+                <div class="text-[11px] text-[var(--ink-500)]">${escapeHTML(versName(u.versicherter_id))} · ${relativeTime(u.hochgeladen_am)}</div>
+              </div>
+              <a href="${api.getUploadPublicUrl(u.storage_pfad)}" target="_blank" class="icon-btn" onclick="event.stopPropagation()">${iconSvg('eye',14)}</a>
+            </div>`).join('')
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderMiniUser(id) {
+  const v = state.versicherte.find(x => x.id === id);
+  if (!v) return '<span class="text-[var(--ink-400)]">—</span>';
+  const c = avatarColor(v.id);
+  return `<div class="flex items-center gap-2.5">
+    <div class="avatar" style="width:28px;height:28px;font-size:10.5px;background:linear-gradient(135deg, ${c[0]}, ${c[1]});">${initials(v.vorname+' '+v.nachname)}</div>
+    <div class="min-w-0">
+      <div class="text-[13px] font-medium truncate">${escapeHTML(v.vorname)} ${escapeHTML(v.nachname)}</div>
+    </div>
+  </div>`;
+}
+
+function activityItem(a) {
+  if (a.kind === 'antrag') {
+    const it = a.item;
+    return `<button style="width:100%; text-align:left; padding:10px 14px; border-radius:8px; display:flex; gap:10px; align-items:flex-start;" class="hover:bg-[var(--ink-50)] transition" onclick="openAntragDrawer('${it.id}')">
+      <div style="width:28px;height:28px;border-radius:8px;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${iconSvg('file-text',14)}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[12.5px] font-medium truncate">${escapeHTML(it.typ)}</div>
+        <div class="text-[11px] text-[var(--ink-500)] truncate">${escapeHTML(versName(it.versicherter_id))} · ${relativeTime(it.created_at)}</div>
+      </div>
+    </button>`;
+  }
+  if (a.kind === 'nachricht') {
+    const it = a.item;
+    return `<div style="padding:10px 14px; display:flex; gap:10px; align-items:flex-start;">
+      <div style="width:28px;height:28px;border-radius:8px;background:var(--sage-100);color:var(--sage-700);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${iconSvg('mail',14)}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[12.5px] font-medium truncate">${escapeHTML(it.betreff)}</div>
+        <div class="text-[11px] text-[var(--ink-500)] truncate">An ${escapeHTML(versName(it.versicherter_id))} · ${relativeTime(it.created_at)}</div>
+      </div>
+    </div>`;
+  }
+  if (a.kind === 'upload') {
+    const it = a.item;
+    return `<div style="padding:10px 14px; display:flex; gap:10px; align-items:flex-start;">
+      <div style="width:28px;height:28px;border-radius:8px;background:var(--amber-100);color:var(--amber-700);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${iconSvg('upload',14)}</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[12.5px] font-medium truncate">${escapeHTML(it.dateiname)}</div>
+        <div class="text-[11px] text-[var(--ink-500)] truncate">Von ${escapeHTML(versName(it.versicherter_id))} · ${relativeTime(it.hochgeladen_am)}</div>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+function navTo(view) {
+  $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  state.view = view;
+  renderView();
+}
+
+/* =========================================================
+   VIEW: VERSICHERTE
+   ========================================================= */
+function renderVersicherte() {
+  return `
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="page-eyebrow">Verwaltung</div>
+        <h1 class="page-title"><em>Versicherte</em></h1>
+        <p class="page-sub">${state.versicherte.length} Personen · Details und Aktionen</p>
+      </div>
+    </div>
+
+    <div class="panel mt-7">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Versichertennr.</th>
+            <th>Wohnort</th>
+            <th>Kontakt</th>
+            <th>Mitglied seit</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.versicherte.map(v => {
+            const c = avatarColor(v.id);
+            const famCount = state.familie.filter(f => f.versicherter_id === v.id).length;
+            const antrCount = state.antraege.filter(a => a.versicherter_id === v.id).length;
+            return `
+            <tr class="clickable" onclick="openVersicherterDrawer('${v.id}')">
+              <td>
+                <div class="flex items-center gap-3">
+                  <div class="avatar" style="background:linear-gradient(135deg, ${c[0]}, ${c[1]});">${initials(v.vorname+' '+v.nachname)}</div>
+                  <div>
+                    <div class="font-semibold text-[13.5px]">${escapeHTML(v.vorname)} ${escapeHTML(v.nachname)}</div>
+                    <div class="text-[11.5px] text-[var(--ink-500)]">${escapeHTML(v.anrede)} · geb. ${isoToDE(v.geburtsdatum)}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="mono text-[12.5px] text-[var(--ink-600)]">${escapeHTML(v.versichertennummer)}</td>
+              <td>
+                <div class="text-[13px]">${escapeHTML(v.plz || '')} ${escapeHTML(v.ort || '')}</div>
+                <div class="text-[11.5px] text-[var(--ink-500)]">${escapeHTML(v.strasse || '')}</div>
+              </td>
+              <td>
+                <div class="text-[12.5px] text-[var(--ink-700)]">${escapeHTML(v.email || '')}</div>
+                <div class="text-[11.5px] text-[var(--ink-500)] mono">${escapeHTML(v.telefon || '')}</div>
+              </td>
+              <td class="num text-[var(--ink-700)]">${v.mitglied_seit || '—'}</td>
+              <td class="text-right text-[var(--ink-400)]">${iconSvg('chevron-right',14)}</td>
+            </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function openVersicherterDrawer(id) {
+  const v = state.versicherte.find(x => x.id === id);
+  if (!v) return;
+
+  const fam = state.familie.filter(f => f.versicherter_id === id);
+  const antr = state.antraege.filter(a => a.versicherter_id === id);
+  const nach = state.nachrichten.filter(n => n.versicherter_id === id);
+  const upl = state.uploads.filter(u => u.versicherter_id === id);
+  const c = avatarColor(v.id);
+
+  const html = `
+    <div class="drawer-header">
+      <div class="flex items-center gap-3">
+        <div class="avatar" style="width:44px;height:44px;font-size:14px;background:linear-gradient(135deg, ${c[0]}, ${c[1]});">${initials(v.vorname+' '+v.nachname)}</div>
+        <div>
+          <div class="serif" style="font-size:22px;line-height:1.1;">${escapeHTML(v.vorname)} ${escapeHTML(v.nachname)}</div>
+          <div class="text-[12px] text-[var(--ink-500)] mono mt-0.5">${escapeHTML(v.versichertennummer)}</div>
+        </div>
+      </div>
+      <button class="icon-btn" onclick="closeDrawer()">${iconSvg('x',16)}</button>
+    </div>
+    <div class="drawer-body">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Stammdaten</div></div>
+        <div style="padding: 16px 18px;">
+          <dl class="kv-grid">
+            <dt>Anrede</dt><dd>${escapeHTML(v.anrede)}</dd>
+            <dt>Geburtsdatum</dt><dd class="num">${isoToDE(v.geburtsdatum)}</dd>
+            <dt>Kassennummer</dt><dd class="mono">${escapeHTML(v.kassennummer)}</dd>
+            <dt>Gültig bis</dt><dd class="num">${escapeHTML(v.gueltig_bis)}</dd>
+            <dt>Mitglied seit</dt><dd class="num">${v.mitglied_seit || '—'}</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="panel mt-4">
+        <div class="panel-header"><div class="panel-title">Kontakt & Adresse</div></div>
+        <div style="padding: 16px 18px;">
+          <dl class="kv-grid">
+            <dt>Adresse</dt><dd>${escapeHTML(v.strasse||'')}<br>${escapeHTML(v.plz||'')} ${escapeHTML(v.ort||'')}</dd>
+            <dt>E-Mail</dt><dd>${escapeHTML(v.email||'—')}</dd>
+            <dt>Telefon</dt><dd class="mono">${escapeHTML(v.telefon||'—')}</dd>
+            <dt>IBAN</dt><dd class="mono">${escapeHTML(v.iban||'—')}</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-3 mt-4">
+        <div class="panel" style="padding: 14px 16px;">
+          <div class="kpi-label">Anträge</div>
+          <div class="serif num" style="font-size:26px;margin-top:4px;">${antr.length}</div>
+        </div>
+        <div class="panel" style="padding: 14px 16px;">
+          <div class="kpi-label">Familie</div>
+          <div class="serif num" style="font-size:26px;margin-top:4px;">${fam.length}</div>
+        </div>
+        <div class="panel" style="padding: 14px 16px;">
+          <div class="kpi-label">Nachrichten</div>
+          <div class="serif num" style="font-size:26px;margin-top:4px;">${nach.length}</div>
+        </div>
+        <div class="panel" style="padding: 14px 16px;">
+          <div class="kpi-label">Uploads</div>
+          <div class="serif num" style="font-size:26px;margin-top:4px;">${upl.length}</div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 mt-5">
+        <button class="btn btn-primary flex-1" onclick="openNachrichtModal('${v.id}')">${iconSvg('send',14)} Nachricht senden</button>
+        <button class="btn btn-secondary flex-1" onclick="closeDrawer(); navTo('antraege'); state.filters.antraege.versicherter='${v.id}'; renderView();">${iconSvg('file-text',14)} Anträge ansehen</button>
+      </div>
+    </div>
+  `;
+  openDrawer(html);
+}
+
+/* =========================================================
+   VIEW: ANTRÄGE
+   ========================================================= */
+function renderAntraege() {
+  const f = state.filters.antraege;
+  let list = state.antraege.slice();
+  if (f.status !== 'alle') list = list.filter(a => a.status === f.status);
+  if (f.versicherter !== 'alle') list = list.filter(a => a.versicherter_id === f.versicherter);
+
+  const fChip = (id, label) => `
+    <button onclick="setAntragStatus('${id}')" class="chip ${f.status===id ? 'chip-blue' : 'chip-gray'}" style="cursor:pointer; padding:5px 11px;">${label}</button>
+  `;
+
+  return `
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="page-eyebrow">Verwaltung</div>
+        <h1 class="page-title"><em>Anträge</em></h1>
+        <p class="page-sub">${list.length} von ${state.antraege.length} Anträgen · Status per Klick änderbar</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 mt-6 flex-wrap">
+      <div class="flex gap-2">
+        ${fChip('alle','Alle')}
+        ${fChip('Eingegangen','Eingegangen')}
+        ${fChip('In Bearbeitung','In Bearbeitung')}
+        ${fChip('Erledigt','Erledigt')}
+        ${fChip('Abgelehnt','Abgelehnt')}
+      </div>
+      <div style="height:20px; width:1px; background: var(--ink-200);"></div>
+      <select class="inp" style="width: 220px;" onchange="state.filters.antraege.versicherter=this.value; renderView();">
+        <option value="alle" ${f.versicherter==='alle'?'selected':''}>Alle Versicherten</option>
+        ${state.versicherte.map(v => `<option value="${v.id}" ${f.versicherter===v.id?'selected':''}>${escapeHTML(v.vorname)} ${escapeHTML(v.nachname)}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="panel mt-5">
+      ${list.length === 0
+        ? `<div class="empty"><div class="empty-icon">${iconSvg('file-text',22)}</div>Keine Anträge in dieser Ansicht</div>`
+        : `<table class="tbl">
+            <thead><tr>
+              <th>Versicherter</th><th>Typ</th><th>Betreff</th><th>Eingereicht</th><th>Status</th><th></th>
+            </tr></thead>
+            <tbody>
+              ${list.map(a => `
+                <tr class="clickable" onclick="openAntragDrawer('${a.id}')">
+                  <td>${renderMiniUser(a.versicherter_id)}</td>
+                  <td class="text-[var(--ink-700)]">${escapeHTML(a.typ)}</td>
+                  <td class="text-[var(--ink-600)] truncate" style="max-width:280px">${escapeHTML(a.betreff)}</td>
+                  <td class="num text-[var(--ink-500)]">${isoToDE(a.eingereicht_am)}</td>
+                  <td onclick="event.stopPropagation()">${statusChip(a.status, true, a.id)}</td>
+                  <td class="text-right text-[var(--ink-400)]">${iconSvg('chevron-right',14)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`
+      }
+    </div>
+  `;
+}
+function setAntragStatus(id) {
+  state.filters.antraege.status = id;
+  renderView();
+}
+
+async function openAntragDrawer(id) {
+  const a = state.antraege.find(x => x.id === id);
+  if (!a) return;
+
+  let timeline = [];
+  try { timeline = await api.loadTimeline(id); } catch (e) { console.warn(e); }
+
+  const html = `
+    <div class="drawer-header">
+      <div>
+        <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Antrag</div>
+        <div class="serif" style="font-size:24px;line-height:1.1;margin-top:2px;">${escapeHTML(a.typ)}</div>
+        <div class="text-[13px] text-[var(--ink-600)] mt-1">${escapeHTML(a.betreff)}</div>
+      </div>
+      <button class="icon-btn" onclick="closeDrawer()">${iconSvg('x',16)}</button>
+    </div>
+    <div class="drawer-body">
+      <div class="flex items-center gap-3">
+        ${renderMiniUser(a.versicherter_id)}
+        <div style="height:20px; width:1px; background: var(--ink-200);"></div>
+        <div class="text-[12px] text-[var(--ink-500)]">Eingereicht am <span class="num">${isoToDE(a.eingereicht_am)}</span></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Status</div>
+          <div class="mt-2">${statusChip(a.status, true, a.id)}</div>
+        </div>
+        <button class="btn btn-secondary" onclick="openTimelineModal('${a.id}')">${iconSvg('plus',13)} Timeline-Eintrag</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Bearbeitungsverlauf</div></div>
+        <div style="padding: 18px 20px 20px 24px;">
+          <div class="tl">
+            ${timeline.length === 0
+              ? `<div class="text-[12.5px] text-[var(--ink-500)]">Noch keine Einträge.</div>`
+              : timeline.map(t => `
+                <div class="tl-item ${t.status}">
+                  <div class="tl-dot"></div>
+                  <div class="text-[13.5px] font-medium">${escapeHTML(t.text)}</div>
+                  <div class="text-[11.5px] text-[var(--ink-500)] num">${escapeHTML(t.datum)}</div>
+                </div>`).join('')
+            }
+          </div>
+        </div>
+      </div>
+
+      ${a.beschreibung ? `
+        <div class="panel mt-4">
+          <div class="panel-header"><div class="panel-title">Beschreibung</div></div>
+          <div style="padding: 14px 18px; font-size: 13px; color: var(--ink-700); white-space: pre-line;">${escapeHTML(a.beschreibung)}</div>
+        </div>
+      ` : ''}
+
+      <div class="flex gap-2 mt-6">
+        <button class="btn btn-primary flex-1" onclick="openNachrichtModal('${a.versicherter_id}', 'Rückmeldung zu Ihrem Antrag: ${escapeHTML(a.typ)}')">${iconSvg('send',14)} Rückmeldung senden</button>
+        <button class="btn btn-danger" onclick="confirmDeleteAntrag('${a.id}')">${iconSvg('trash',14)} Löschen</button>
+      </div>
+    </div>
+  `;
+  openDrawer(html);
+}
+
+async function confirmDeleteAntrag(id) {
+  if (!confirm('Antrag wirklich löschen? Das kann nicht rückgängig gemacht werden.')) return;
+  try {
+    await api.deleteAntrag(id);
+    toast('Antrag gelöscht', 'success');
+    closeDrawer();
+    await api.loadAll();
+    renderView();
+    updateSidebarCounts();
+  } catch (e) { toast('Fehler: ' + e.message, 'error'); }
+}
+
+/* Status-Dropdown */
+let statusDropdownEl = null;
+function openStatusDropdown(ev, antragId) {
+  ev.stopPropagation();
+  closeStatusDropdown();
+
+  const statuses = [
+    { v: 'Eingegangen',    color: 'var(--brand-700)' },
+    { v: 'In Bearbeitung', color: 'var(--amber-700)' },
+    { v: 'Erledigt',       color: 'var(--sage-700)' },
+    { v: 'Abgelehnt',      color: 'var(--rose-700)' }
+  ];
+
+  const d = document.createElement('div');
+  d.className = 'status-dropdown';
+  d.innerHTML = statuses.map(s => `
+    <div class="status-option" onclick="changeAntragStatus('${antragId}', '${s.v}')">
+      <div style="width:8px;height:8px;border-radius:50%;background:${s.color};"></div>
+      <span>${s.v}</span>
+    </div>
+  `).join('');
+
+  const rect = ev.currentTarget.getBoundingClientRect();
+  d.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+  d.style.left = (rect.left + window.scrollX) + 'px';
+  document.body.appendChild(d);
+  statusDropdownEl = d;
+
+  setTimeout(() => {
+    document.addEventListener('click', closeStatusDropdown, { once: true });
+  }, 0);
+}
+function closeStatusDropdown() {
+  if (statusDropdownEl) { statusDropdownEl.remove(); statusDropdownEl = null; }
+}
+async function changeAntragStatus(id, newStatus) {
+  closeStatusDropdown();
+  try {
+    await api.updateAntragStatus(id, newStatus);
+    const a = state.antraege.find(x => x.id === id);
+    if (a) a.status = newStatus;
+    toast(`Status auf „${newStatus}" geändert`, 'success');
+    renderView();
+    updateSidebarCounts();
+  } catch (e) { toast('Fehler: ' + e.message, 'error'); }
+}
+
+/* Timeline-Eintrag hinzufügen */
+function openTimelineModal(antragId) {
+  openModal(`
+    <div style="padding: 22px 24px 20px 24px; border-bottom: 1px solid var(--ink-150);">
+      <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Hinzufügen</div>
+      <div class="serif" style="font-size:22px; line-height:1.1; margin-top:2px;">Timeline-Eintrag</div>
+    </div>
+    <form id="tlForm" style="padding: 20px 24px; display:flex; flex-direction:column; gap:14px;" onsubmit="return submitTimelineEntry(event, '${antragId}')">
+      <div>
+        <label class="lbl">Datum</label>
+        <input class="inp num" name="datum" required placeholder="TT.MM.JJJJ" value="${new Date().toLocaleDateString('de-DE')}">
+      </div>
+      <div>
+        <label class="lbl">Text</label>
+        <input class="inp" name="text" required placeholder="z. B. Unterlagen geprüft">
+      </div>
+      <div>
+        <label class="lbl">Status</label>
+        <select class="inp" name="status">
+          <option value="done">Erledigt (grün)</option>
+          <option value="current">Aktuell (blau)</option>
+          <option value="pending">Ausstehend (grau)</option>
+        </select>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Hinzufügen</button>
+      </div>
+    </form>
+  `);
+}
+async function submitTimelineEntry(ev, antragId) {
+  ev.preventDefault();
+  const f = ev.target;
+  try {
+    await api.addTimelineEntry(antragId, f.datum.value, f.text.value, f.status.value);
+    closeModal();
+    toast('Timeline-Eintrag hinzugefügt', 'success');
+    openAntragDrawer(antragId);
+  } catch (e) {
+    toast('Fehler: ' + e.message, 'error');
+  }
+  return false;
+}
+
+/* =========================================================
+   VIEW: POSTFACH
+   ========================================================= */
+function renderPostfach() {
+  const f = state.filters.postfach;
+  let list = state.nachrichten.slice();
+  if (f.gelesen === 'ungelesen') list = list.filter(n => !n.gelesen);
+  if (f.gelesen === 'gelesen')   list = list.filter(n => n.gelesen);
+
+  const fChip = (id, label) => `
+    <button onclick="state.filters.postfach.gelesen='${id}'; renderView();" class="chip ${f.gelesen===id ? 'chip-blue' : 'chip-gray'}" style="cursor:pointer; padding:5px 11px;">${label}</button>
+  `;
+
+  return `
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="page-eyebrow">Verwaltung</div>
+        <h1 class="page-title"><em>Postfach</em></h1>
+        <p class="page-sub">${list.length} Nachrichten · an Versicherte senden und verwalten</p>
+      </div>
+      <button class="btn btn-primary" onclick="openNachrichtModal()">${iconSvg('plus',14)} Neue Nachricht</button>
+    </div>
+
+    <div class="flex gap-2 mt-6">
+      ${fChip('alle','Alle')}
+      ${fChip('ungelesen','Ungelesen')}
+      ${fChip('gelesen','Gelesen')}
+    </div>
+
+    <div class="panel mt-5">
+      ${list.length === 0
+        ? `<div class="empty"><div class="empty-icon">${iconSvg('mail',22)}</div>Keine Nachrichten in dieser Ansicht</div>`
+        : `<table class="tbl">
+          <thead><tr>
+            <th style="width:40px;"></th><th>Empfänger</th><th>Betreff</th><th>Absender</th><th>Datum</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${list.map(n => `
+              <tr class="clickable" onclick="openNachrichtDrawer('${n.id}')">
+                <td>${n.gelesen ? '' : '<div style="width:8px;height:8px;border-radius:50%;background:var(--brand-600);"></div>'}</td>
+                <td>${renderMiniUser(n.versicherter_id)}</td>
+                <td>
+                  <div class="flex items-center gap-1.5">
+                    ${n.wichtig ? `<span class="chip chip-amber" style="font-size:10px;padding:2px 6px;">${iconSvg('star',10)}</span>` : ''}
+                    <span class="${n.gelesen?'text-[var(--ink-600)]':'font-semibold text-[var(--ink-900)]'}">${escapeHTML(n.betreff)}</span>
+                  </div>
+                  ${n.anhang_name ? `<div class="text-[11px] text-[var(--ink-500)] mt-0.5 flex items-center gap-1">${iconSvg('paperclip',11)} ${escapeHTML(n.anhang_name)}</div>` : ''}
+                </td>
+                <td class="text-[12.5px] text-[var(--ink-600)]">${escapeHTML(n.absender)}</td>
+                <td class="num text-[var(--ink-500)]">${isoToDE(n.datum)}</td>
+                <td class="text-right text-[var(--ink-400)]">${iconSvg('chevron-right',14)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`
+      }
+    </div>
+  `;
+}
+
+function openNachrichtDrawer(id) {
+  const n = state.nachrichten.find(x => x.id === id);
+  if (!n) return;
+  const html = `
+    <div class="drawer-header">
+      <div>
+        <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Nachricht</div>
+        <div class="serif" style="font-size:22px; line-height:1.15; margin-top:2px;">${escapeHTML(n.betreff)}</div>
+      </div>
+      <button class="icon-btn" onclick="closeDrawer()">${iconSvg('x',16)}</button>
+    </div>
+    <div class="drawer-body">
+      <div class="panel">
+        <div style="padding: 16px 18px;">
+          <dl class="kv-grid">
+            <dt>An</dt><dd>${renderMiniUser(n.versicherter_id)}</dd>
+            <dt>Absender</dt><dd>${escapeHTML(n.absender)}</dd>
+            <dt>Datum</dt><dd class="num">${isoToDE(n.datum)}</dd>
+            <dt>Status</dt><dd>${n.gelesen ? '<span class="chip chip-gray">Gelesen</span>' : '<span class="chip chip-blue">Ungelesen</span>'}</dd>
+            ${n.wichtig ? '<dt>Flag</dt><dd><span class="chip chip-amber">Wichtig</span></dd>' : ''}
+            ${n.anhang_name ? `<dt>Anhang</dt><dd class="flex items-center gap-1.5">${iconSvg('paperclip',13)} <span class="mono text-[12px]">${escapeHTML(n.anhang_name)}</span></dd>` : ''}
+          </dl>
+        </div>
+      </div>
+
+      <div class="panel mt-4">
+        <div class="panel-header"><div class="panel-title">Inhalt</div></div>
+        <div style="padding: 16px 18px; font-size: 13.5px; color: var(--ink-800); white-space: pre-line; line-height: 1.55;">${escapeHTML(n.text)}</div>
+      </div>
+
+      <div class="flex gap-2 mt-6">
+        ${n.gelesen
+          ? `<button class="btn btn-secondary flex-1" onclick="toggleGelesen('${n.id}', false)">Als ungelesen markieren</button>`
+          : `<button class="btn btn-secondary flex-1" onclick="toggleGelesen('${n.id}', true)">Als gelesen markieren</button>`}
+        <button class="btn btn-danger" onclick="confirmDeleteNachricht('${n.id}')">${iconSvg('trash',14)} Löschen</button>
+      </div>
+    </div>
+  `;
+  openDrawer(html);
+}
+
+async function toggleGelesen(id, gelesen) {
+  try {
+    await api.markNachricht(id, gelesen);
+    const n = state.nachrichten.find(x => x.id === id);
+    if (n) n.gelesen = gelesen;
+    toast(gelesen ? 'Als gelesen markiert' : 'Als ungelesen markiert', 'info');
+    closeDrawer();
+    renderView();
+    updateSidebarCounts();
+  } catch (e) { toast('Fehler: ' + e.message, 'error'); }
+}
+
+async function confirmDeleteNachricht(id) {
+  if (!confirm('Nachricht wirklich löschen?')) return;
+  try {
+    await api.deleteNachricht(id);
+    toast('Nachricht gelöscht', 'success');
+    closeDrawer();
+    await api.loadAll();
+    renderView();
+    updateSidebarCounts();
+  } catch (e) { toast('Fehler: ' + e.message, 'error'); }
+}
+
+function openNachrichtModal(empfaengerId='', vorbelegterBetreff='') {
+  openModal(`
+    <div style="padding: 22px 24px 20px 24px; border-bottom: 1px solid var(--ink-150);">
+      <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Neue Nachricht</div>
+      <div class="serif" style="font-size:22px; line-height:1.1; margin-top:2px;">Nachricht senden</div>
+    </div>
+    <form id="msgForm" style="padding: 20px 24px; display:flex; flex-direction:column; gap:14px; overflow-y:auto;" onsubmit="return submitNachricht(event)">
+      <div>
+        <label class="lbl">Empfänger</label>
+        <select class="inp" name="empfaenger" required>
+          <option value="">— bitte wählen —</option>
+          ${state.versicherte.map(v => `<option value="${v.id}" ${empfaengerId===v.id?'selected':''}>${escapeHTML(v.vorname)} ${escapeHTML(v.nachname)} · ${escapeHTML(v.versichertennummer)}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Absender (wird in der App angezeigt)</label>
+        <select class="inp" name="absender">
+          <option>MusterKasse · Sachbearbeitung</option>
+          <option>MusterKasse · Mitgliederservice</option>
+          <option>MusterKasse · Bonusprogramm</option>
+          <option>MusterKasse · Prävention</option>
+          <option>MusterKasse · Beitragsservice</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Betreff</label>
+        <input class="inp" name="betreff" required value="${escapeHTML(vorbelegterBetreff)}" placeholder="Kurze, klare Betreffzeile">
+      </div>
+      <div>
+        <label class="lbl">Nachricht</label>
+        <textarea class="inp" name="text" rows="6" required placeholder="Sehr geehrte/r …"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">Anhang (optional, nur Name)</label>
+          <input class="inp mono" name="anhang" placeholder="z. B. Bescheid.pdf">
+        </div>
+        <div>
+          <label class="lbl">Flag</label>
+          <label class="flex items-center gap-2 mt-2 cursor-pointer">
+            <input type="checkbox" name="wichtig">
+            <span class="text-[13px]">Als wichtig markieren</span>
+          </label>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-[var(--ink-150)] mt-2" style="padding-top:14px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">${iconSvg('send',14)} Senden</button>
+      </div>
+    </form>
+  `);
+}
+
+async function submitNachricht(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const btn = f.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.style.opacity = '0.6';
+  try {
+    await api.sendNachricht({
+      versicherter_id: f.empfaenger.value,
+      betreff: f.betreff.value,
+      absender: f.absender.value,
+      text: f.text.value,
+      wichtig: f.wichtig.checked,
+      anhang_name: f.anhang.value || null
+    });
+    closeModal();
+    toast('Nachricht gesendet', 'success');
+    closeDrawer();
+    await api.loadAll();
+    renderView();
+    updateSidebarCounts();
+  } catch (e) {
+    toast('Fehler: ' + e.message, 'error');
+    btn.disabled = false; btn.style.opacity = '';
+  }
+  return false;
+}
+
+/* =========================================================
+   VIEW: UPLOADS
+   ========================================================= */
+function renderUploads() {
+  return `
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="page-eyebrow">Verwaltung</div>
+        <h1 class="page-title"><em>AU-Uploads</em></h1>
+        <p class="page-sub">${state.uploads.length} Dateien im Storage · direkt ansehen und verwalten</p>
+      </div>
+    </div>
+
+    <div class="panel mt-7">
+      ${state.uploads.length === 0
+        ? `<div class="empty"><div class="empty-icon">${iconSvg('upload',22)}</div>Noch keine Uploads vorhanden</div>`
+        : `<table class="tbl">
+          <thead><tr>
+            <th>Datei</th><th>Für</th><th>Zeitraum</th><th>Größe</th><th>Hochgeladen</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${state.uploads.map(u => `
+              <tr>
+                <td>
+                  <div class="flex items-center gap-3">
+                    <div style="width:36px;height:36px;border-radius:9px;background:var(--brand-50);color:var(--brand-700);display:flex;align-items:center;justify-content:center;">
+                      ${iconSvg(u.mime_type?.startsWith('image') ? 'image' : 'pdf', 16)}
+                    </div>
+                    <div class="min-w-0">
+                      <div class="font-medium text-[13px] truncate" style="max-width:280px">${escapeHTML(u.dateiname)}</div>
+                      <div class="text-[11px] text-[var(--ink-500)] mono">${escapeHTML(u.mime_type || '')}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="text-[13px] font-medium">${escapeHTML(u.person_name)}</div>
+                  <div class="text-[11px] text-[var(--ink-500)]">via ${escapeHTML(versName(u.versicherter_id))}</div>
+                </td>
+                <td class="num text-[12.5px] text-[var(--ink-600)]">
+                  ${u.au_beginn ? isoToDE(u.au_beginn) : '—'} – ${u.au_ende ? isoToDE(u.au_ende) : '—'}
+                </td>
+                <td class="num text-[12.5px] text-[var(--ink-600)]">${u.datei_groesse ? Math.round(u.datei_groesse/1024) + ' KB' : '—'}</td>
+                <td class="text-[12.5px] text-[var(--ink-500)]">${relativeTime(u.hochgeladen_am)}</td>
+                <td class="text-right">
+                  <div class="flex items-center gap-1 justify-end">
+                    <a href="${api.getUploadPublicUrl(u.storage_pfad)}" target="_blank" class="icon-btn" title="Ansehen">${iconSvg('eye',14)}</a>
+                    <button class="icon-btn" onclick="confirmDeleteUpload('${u.id}')" title="Löschen" style="color: var(--rose-600);">${iconSvg('trash',14)}</button>
+                  </div>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`
+      }
+    </div>
+  `;
+}
+
+async function confirmDeleteUpload(id) {
+  const u = state.uploads.find(x => x.id === id);
+  if (!u) return;
+  if (!confirm(`Datei "${u.dateiname}" wirklich löschen?`)) return;
+  try {
+    await api.deleteUpload(u);
+    toast('Upload gelöscht', 'success');
+    await api.loadAll();
+    renderView();
+    updateSidebarCounts();
+  } catch (e) { toast('Fehler: ' + e.message, 'error'); }
+}
+
+/* =========================================================
+   VIEW: FAMILIE
+   ========================================================= */
+function renderFamilie() {
+  const grouped = state.versicherte.map(v => ({
+    v,
+    members: state.familie.filter(f => f.versicherter_id === v.id)
+  }));
+
+  return `
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="page-eyebrow">Verwaltung</div>
+        <h1 class="page-title"><em>Familie</em></h1>
+        <p class="page-sub">Familienmitglieder je Versicherten · ${state.familie.length} Personen gesamt</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-5 mt-7">
+      ${grouped.map(g => {
+        const c = avatarColor(g.v.id);
+        return `
+        <div class="panel">
+          <div class="panel-header">
+            <div class="flex items-center gap-2.5">
+              <div class="avatar" style="width:28px;height:28px;font-size:10.5px;background:linear-gradient(135deg, ${c[0]}, ${c[1]});">${initials(g.v.vorname+' '+g.v.nachname)}</div>
+              <div class="panel-title">${escapeHTML(g.v.vorname)} ${escapeHTML(g.v.nachname)}</div>
+            </div>
+            <button class="btn btn-ghost" onclick="openFamilieModal('${g.v.id}')">${iconSvg('plus',13)} Hinzufügen</button>
+          </div>
+          ${g.members.length === 0
+            ? `<div style="padding: 24px; text-align:center; color: var(--ink-500); font-size:12.5px;">Keine Familienmitglieder</div>`
+            : g.members.map(m => `
+              <div style="padding: 12px 18px; border-bottom: 1px solid var(--ink-100); display:flex; align-items:center; gap:12px;">
+                <div class="avatar" style="width:32px;height:32px;font-size:11px;background:var(--ink-200);color:var(--ink-700);">${initials(m.name)}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-medium truncate">${escapeHTML(m.name)}</div>
+                  <div class="text-[11px] text-[var(--ink-500)]">${escapeHTML(m.rolle)} · geb. ${isoToDE(m.geburtsdatum)} · ${escapeHTML(m.status)}</div>
+                </div>
+                <button class="icon-btn" onclick="confirmDeleteFamilie('${m.id}')" title="Entfernen" style="color: var(--rose-600);">${iconSvg('trash',14)}</button>
+              </div>`).join('')
+          }
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function openFamilieModal(versicherterId) {
+  const v = state.versicherte.find(x => x.id === versicherterId);
+  openModal(`
+    <div style="padding: 22px 24px 20px 24px; border-bottom: 1px solid var(--ink-150);">
+      <div class="text-[11px] text-[var(--ink-500)] uppercase tracking-wider font-medium">Hinzufügen zu</div>
+      <div class="serif" style="font-size:22px; line-height:1.1; margin-top:2px;">${escapeHTML(v.vorname)} ${escapeHTML(v.nachname)}</div>
+    </div>
+    <form style="padding: 20px 24px; display:flex; flex-direction:column; gap:14px;" onsubmit="return submitFamilie(event, '${versicherterId}')">
+      <div>
+        <label class="lbl">Name</label>
+        <input class="inp" name="name" required placeholder="Vor- und Nachname">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="lbl">Rolle</label>
+          <select class="inp" name="rolle">
+            <option>Ehepartnerin</option>
+            <option>Ehepartner</option>
+            <option>Kind</option>
+            <option>Sonstiges</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Geburtsdatum</label>
+          <input class="inp num" type="date" name="geburt" required>
+        </div>
+      </div>
+      <div>
+        <label class="lbl">Status</label>
+        <select class="inp" name="status">
+          <option>Familienversichert</option>
+          <option>Pflichtversichert</option>
+          <option>Familienversichert (in Prüfung)</option>
+        </select>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Hinzufügen</button>
+      </div>
+    </form>
+  `);
+}
+async function submitFamilie(ev, versicherterId) {
+  ev.preventDefault();
+  const f = ev.target;
+  try {
+    await api.addFamilie({
+      versicherter_id: versicherterId,
+      name: f.name.value,
+      rolle: f.rolle.value,
+      geburtsdatum: f.geburt.value,
+      status: f.status.value
+    });
+    closeModal();
+    toast('Familienmitglied hinzugefügt', 'success');
+    await api.loadAll();
+    renderView();
+  } catch (e) { toast('Fehler: ' + e.message, 'error'); }
+  return false;
+}
+async function confirmDeleteFamilie(id) {
+  if (!confirm('Familienmitglied wirklich entfernen?')) return;
+  try {
+    await api.deleteFamilie(id);
+    toast('Familienmitglied entfernt', 'success');
+    await api.loadAll();
+    renderView();
+  } catch (e) { toast('Fehler: ' + e.message, 'error'); }
+}
+
+/* =========================================================
+   COMMAND PALETTE (Cmd+K)
+   ========================================================= */
+let cmdkIdx = 0;
+function openCmdK() {
+  cmdkIdx = 0;
+  const host = $('#cmdkHost');
+  host.innerHTML = `
+    <div class="cmdk-backdrop" onclick="if(event.target===this) closeCmdK()">
+      <div class="cmdk">
+        <input id="cmdkInput" class="cmdk-input" placeholder="Versicherten suchen oder springen zu …" autocomplete="off">
+        <div id="cmdkList" class="cmdk-list"></div>
+      </div>
+    </div>
+  `;
+  const inp = $('#cmdkInput');
+  inp.focus();
+  inp.addEventListener('input', updateCmdK);
+  inp.addEventListener('keydown', handleCmdKKey);
+  updateCmdK();
+}
+function closeCmdK() { $('#cmdkHost').innerHTML = ''; }
+
+function updateCmdK() {
+  const q = ($('#cmdkInput')?.value || '').trim().toLowerCase();
+  const nav = [
+    { kind: 'nav', label: 'Dashboard', sub: 'Übersicht', to: 'dashboard', icon: 'activity' },
+    { kind: 'nav', label: 'Versicherte', sub: 'Verwaltung', to: 'versicherte', icon: 'users' },
+    { kind: 'nav', label: 'Anträge', sub: 'Verwaltung', to: 'antraege', icon: 'file-text' },
+    { kind: 'nav', label: 'Postfach', sub: 'Verwaltung', to: 'postfach', icon: 'mail' },
+    { kind: 'nav', label: 'AU-Uploads', sub: 'Verwaltung', to: 'uploads', icon: 'upload' },
+    { kind: 'nav', label: 'Familie', sub: 'Verwaltung', to: 'familie', icon: 'users' }
+  ];
+  const vers = state.versicherte.map(v => ({
+    kind: 'vers', label: `${v.vorname} ${v.nachname}`, sub: v.versichertennummer, id: v.id, icon: 'users'
+  }));
+  const all = [...nav, ...vers];
+  const filtered = q ? all.filter(x => (x.label + ' ' + x.sub).toLowerCase().includes(q)) : all;
+  cmdkIdx = Math.min(cmdkIdx, Math.max(0, filtered.length - 1));
+  $('#cmdkList').innerHTML = filtered.map((x, i) => `
+    <div class="cmdk-item ${i===cmdkIdx?'active':''}" data-idx="${i}" onclick="cmdkExec(${i})" onmouseenter="cmdkIdx=${i}; updateCmdKHighlight();">
+      <div style="width:28px;height:28px;border-radius:7px;background:var(--ink-100);color:var(--ink-700);display:flex;align-items:center;justify-content:center;">${iconSvg(x.icon,14)}</div>
+      <div class="flex-1 min-w-0">
+        <div class="font-medium">${escapeHTML(x.label)}</div>
+        <div class="text-[11.5px] text-[var(--ink-500)] truncate">${escapeHTML(x.sub)}</div>
+      </div>
+      <div class="text-[10.5px] text-[var(--ink-400)]">${x.kind === 'nav' ? 'Navigation' : 'Versicherter'}</div>
+    </div>
+  `).join('');
+  $('#cmdkList').dataset.items = JSON.stringify(filtered);
+}
+function updateCmdKHighlight() {
+  $$('#cmdkList .cmdk-item').forEach((el,i) => el.classList.toggle('active', i===cmdkIdx));
+}
+function handleCmdKKey(e) {
+  const items = JSON.parse($('#cmdkList').dataset.items || '[]');
+  if (e.key === 'ArrowDown') { e.preventDefault(); cmdkIdx = Math.min(cmdkIdx+1, items.length-1); updateCmdKHighlight(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); cmdkIdx = Math.max(cmdkIdx-1, 0); updateCmdKHighlight(); }
+  else if (e.key === 'Enter') { e.preventDefault(); cmdkExec(cmdkIdx); }
+  else if (e.key === 'Escape') closeCmdK();
+}
+function cmdkExec(idx) {
+  const items = JSON.parse($('#cmdkList').dataset.items || '[]');
+  const x = items[idx];
+  if (!x) return;
+  closeCmdK();
+  if (x.kind === 'nav') { navTo(x.to); }
+  else if (x.kind === 'vers') { openVersicherterDrawer(x.id); }
+}
+
+/* =========================================================
+   MODAL + DRAWER
+   ========================================================= */
+function openModal(innerHTML) {
+  $('#modalHost').innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
+      <div class="modal modal-wide">${innerHTML}</div>
+    </div>
+  `;
+}
+function closeModal() { $('#modalHost').innerHTML = ''; }
+
+function openDrawer(innerHTML) {
+  $('#drawerHost').innerHTML = `
+    <div class="drawer-backdrop" onclick="closeDrawer()"></div>
+    <div class="drawer">${innerHTML}</div>
+  `;
+}
+function closeDrawer() { $('#drawerHost').innerHTML = ''; }
+
+/* =========================================================
+   INIT
+   ========================================================= */
+function openApp(ev) {
+  ev?.preventDefault();
+  toast('Versicherten-App-Datei separat öffnen', 'info');
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    openCmdK();
+  }
+  if (e.key === 'Escape') {
+    closeModal(); closeDrawer(); closeCmdK(); closeStatusDropdown();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', initPinGate);
+</script>
+</body>
+</html>
