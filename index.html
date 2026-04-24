@@ -2,11 +2,18 @@
 <!--
   ====================================================================
   MusterKasse · Versicherten-App
-  Version: v0.3.0
+  Version: v0.4.0
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.4.0 (2026-04-24) · Tab-spezifisches Branding
+    + Anträge-Tab zeigt Branding-Titel + Subtext aus mk_branding
+    + Postfach-Tab zeigt Branding-Titel + Subtext
+    + Profil-Tab bekommt eigenen Page-Header mit Branding-Titel
+    + DEFAULT_BRANDING um 6 neue Felder erweitert
+    + Jedes Preset hat kassen-typische Sprache (DAK: "Mitteilungen", TK: "Leistungsanträge" etc.)
+
   v0.3.0 (2026-04-24) · Zwei-Wege-Kommunikation
     + Antworten auf Nachrichten möglich
     + Antwort-Compose-Sheet mit Original-Zitat
@@ -34,11 +41,11 @@
     + initialen() robust gegen leere Namen gemacht
   ====================================================================
 -->
-<html lang="de" data-app-version="0.3.0">
+<html lang="de" data-app-version="0.4.0">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MusterKasse · v0.3.0</title>
+<title>MusterKasse · v0.4.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -699,8 +706,17 @@ window.lucide = {
 /* =========================================================
    MusterKasse – Versicherten-App
    ========================================================= */
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
 const APP_CHANGELOG = [
+  {
+    version: '0.4.0',
+    date: '24.04.2026',
+    changes: [
+      'Anträge, Postfach und Profil zeigen Branding-Titel',
+      'Jeder Tab hat eigenen Untertitel aus mk_branding',
+      'Kassen-typische Sprache je nach Preset'
+    ]
+  },
   {
     version: '0.3.0',
     date: '24.04.2026',
@@ -776,7 +792,13 @@ const DEFAULT_BRANDING = {
   begruessung: 'Guten Tag',
   slogan: 'Ihre Online-Geschäftsstelle',
   vorsorge_titel: 'Gesundheit & Vorsorge',
-  bonus_titel: 'Bonusprogramm'
+  bonus_titel: 'Bonusprogramm',
+  antraege_titel: 'Meine Anträge',
+  antraege_sub:   'Alle laufenden und abgeschlossenen Vorgänge',
+  postfach_titel: 'Postfach',
+  postfach_sub:   'Nachrichten von Ihrer Krankenkasse',
+  profil_titel:   'Mein Profil',
+  profil_sub:     'Stammdaten und Einstellungen'
 };
 
 /* Branding-Werte in CSS-Variablen reinschreiben */
@@ -1346,9 +1368,12 @@ function renderAntraege() {
 
   return `
   <div class="view px-4 pt-4 pb-6 space-y-4">
-    <div class="flex items-center justify-between">
-      <h2 class="serif text-[22px]">Meine Anträge</h2>
-      <span class="text-[12px] text-[var(--ink-500)]">${state.antraege.length} gesamt</span>
+    <div>
+      <div class="flex items-center justify-between">
+        <h2 class="serif text-[22px]">${escapeHTML(state.branding?.antraege_titel || 'Meine Anträge')}</h2>
+        <span class="text-[12px] text-[var(--ink-500)]">${state.antraege.length} gesamt</span>
+      </div>
+      <div class="text-[12px] text-[var(--ink-500)] mt-0.5">${escapeHTML(state.branding?.antraege_sub || 'Alle laufenden und abgeschlossenen Vorgänge')}</div>
     </div>
 
     <div class="flex gap-2">
@@ -1397,9 +1422,12 @@ function renderPostfach() {
 
   return `
   <div class="view px-4 pt-4 pb-6 space-y-4">
-    <div class="flex items-center justify-between">
-      <h2 class="serif text-[22px]">Postfach</h2>
-      <span class="text-[12px] text-[var(--ink-500)]">${state.postfach.filter(n=>!n.gelesen).length} ungelesen</span>
+    <div>
+      <div class="flex items-center justify-between">
+        <h2 class="serif text-[22px]">${escapeHTML(state.branding?.postfach_titel || 'Postfach')}</h2>
+        <span class="text-[12px] text-[var(--ink-500)]">${state.postfach.filter(n=>!n.gelesen).length} ungelesen</span>
+      </div>
+      <div class="text-[12px] text-[var(--ink-500)] mt-0.5">${escapeHTML(state.branding?.postfach_sub || 'Nachrichten von Ihrer Krankenkasse')}</div>
     </div>
 
     <div class="flex gap-2">
@@ -1510,6 +1538,11 @@ function renderProfil() {
 
   return `
   <div class="view px-4 pt-4 pb-6 space-y-5">
+    <div>
+      <h2 class="serif text-[22px]">${escapeHTML(state.branding?.profil_titel || 'Mein Profil')}</h2>
+      <div class="text-[12px] text-[var(--ink-500)] mt-0.5">${escapeHTML(state.branding?.profil_sub || 'Stammdaten und Einstellungen')}</div>
+    </div>
+
     <div class="flex items-center gap-3">
       <div class="relative w-16 h-16 rounded-full overflow-hidden flex items-center justify-center" style="background: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-800) 100%); box-shadow: 0 4px 14px -4px rgba(14,58,117,.5), inset 0 1px 0 rgba(255,255,255,.2);">
         <svg viewBox="0 0 64 64" class="absolute inset-0 w-full h-full opacity-30" aria-hidden="true">
