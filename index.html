@@ -2,11 +2,18 @@
 <!--
   ====================================================================
   MusterKasse · Versicherten-App
-  Version: v0.1.0
+  Version: v0.2.0
   Build:   2026-04-24
   --------------------------------------------------------------------
   CHANGELOG
   --------------------------------------------------------------------
+  v0.2.0 (2026-04-24)
+    + White-Labeling: Branding-Einstellungen werden aus mk_branding geladen
+    + CSS-Variablen werden dynamisch aus DB-Werten befüllt
+    + Kassenname, Farben, Begrüßung, Widget-Titel sind jetzt konfigurierbar
+    + Live-Reload der Branding-Einstellungen via Realtime
+    + Vorsorge-Widget: SVG-viewBox korrigiert, kein Überlauf mehr
+
   v0.1.0 (2026-04-24)
     + Versionierung eingeführt
     + Realtime-Subscription via Supabase (Live-Updates ohne F5)
@@ -16,11 +23,11 @@
     + initialen() robust gegen leere Namen gemacht
   ====================================================================
 -->
-<html lang="de" data-app-version="0.1.0">
+<html lang="de" data-app-version="0.2.0">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MusterKasse · v0.1.0</title>
+<title>MusterKasse · v0.2.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -511,7 +518,7 @@
     <div class="flex items-start justify-between">
       <button id="userSwitcher" onclick="toggleVersSwitcher()" class="flex items-start gap-2 text-left group">
         <div>
-          <div class="text-[11.5px] text-[var(--ink-500)] font-medium tracking-wide uppercase">Guten Tag</div>
+          <div id="headerGreeting" class="text-[11.5px] text-[var(--ink-500)] font-medium tracking-wide uppercase">Guten Tag</div>
           <h1 class="serif text-[26px] leading-tight mt-0.5 flex items-center gap-1.5">
             <span id="userName">Max <span class="italic text-[var(--brand-700)]">Mustermann</span></span>
             <i data-lucide="chevron-down" class="w-5 h-5 text-[var(--ink-400)] group-hover:text-[var(--brand-700)] transition"></i>
@@ -525,13 +532,11 @@
     </div>
     <div class="flex items-center gap-2 mt-3">
       <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--brand-600), var(--brand-800)); box-shadow: 0 2px 6px -2px rgba(14,58,117,.5);">
-        <svg viewBox="0 0 24 24" fill="none" class="w-[18px] h-[18px]" aria-hidden="true">
-          <path d="M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z" fill="#fff"/>
-        </svg>
+        <div id="headerLogoLetter" style="color:#fff; font-family:'Instrument Serif',serif; font-weight:400; font-size:16px; line-height:1;">+</div>
       </div>
       <div>
-        <div class="text-[13px] font-semibold text-[var(--ink-900)] leading-tight">MusterKasse</div>
-        <div class="text-[10.5px] text-[var(--ink-500)] leading-tight">Ihre Online-Geschäftsstelle</div>
+        <div id="headerKassenname" class="text-[13px] font-semibold text-[var(--ink-900)] leading-tight">MusterKasse</div>
+        <div id="headerSlogan" class="text-[10.5px] text-[var(--ink-500)] leading-tight">Ihre Online-Geschäftsstelle</div>
       </div>
     </div>
   </header>
@@ -682,8 +687,18 @@ window.lucide = {
 /* =========================================================
    MusterKasse – Versicherten-App
    ========================================================= */
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.2.0';
 const APP_CHANGELOG = [
+  {
+    version: '0.2.0',
+    date: '24.04.2026',
+    changes: [
+      'White-Labeling: Design kommt aus dem Brandingtool',
+      'Farben, Kassenname, Widget-Titel werden live aus DB geladen',
+      'Realtime: Branding-Änderungen erscheinen sofort',
+      'Vorsorge-Widget: Grafik-Überlauf behoben'
+    ]
+  },
   {
     version: '0.1.0',
     date: '24.04.2026',
@@ -712,9 +727,75 @@ const T = {
   antraege:       'mk_antraege',
   timeline:       'mk_antrag_timeline',
   nachrichten:    'mk_nachrichten',
-  au_uploads:     'mk_au_uploads'
+  au_uploads:     'mk_au_uploads',
+  branding:       'mk_branding'
 };
 const BUCKET = 'mk-au-uploads';
+
+/* Default-Branding falls DB leer / nicht erreichbar */
+const DEFAULT_BRANDING = {
+  kassenname: 'MusterKasse',
+  kassenname_kurz: 'MusterKasse',
+  logo_buchstabe: '+',
+  primary_color: '#0E3A75',
+  primary_dark:  '#0B2A56',
+  primary_light: '#1B5FB5',
+  accent_color:  '#3F7D5A',
+  accent_light:  '#4F9A6E',
+  begruessung: 'Guten Tag',
+  slogan: 'Ihre Online-Geschäftsstelle',
+  vorsorge_titel: 'Gesundheit & Vorsorge',
+  bonus_titel: 'Bonusprogramm'
+};
+
+/* Branding-Werte in CSS-Variablen reinschreiben */
+function applyBrandingToCSS(b) {
+  if (!b) return;
+  const root = document.documentElement;
+  if (b.primary_color) {
+    root.style.setProperty('--brand-700', b.primary_color);
+    root.style.setProperty('--brand-800', b.primary_dark || shadeColor(b.primary_color, -0.25));
+    root.style.setProperty('--brand-600', shadeColor(b.primary_color, 0.08));
+    root.style.setProperty('--brand-500', b.primary_light || shadeColor(b.primary_color, 0.15));
+    root.style.setProperty('--brand-900', shadeColor(b.primary_color, -0.4));
+  }
+  if (b.accent_color) {
+    root.style.setProperty('--sage-600', b.accent_color);
+    root.style.setProperty('--sage-500', b.accent_light || shadeColor(b.accent_color, 0.12));
+    root.style.setProperty('--sage-700', shadeColor(b.accent_color, -0.2));
+  }
+}
+
+function shadeColor(hex, percent) {
+  const h = (hex || '').replace('#','');
+  if (h.length !== 6) return hex;
+  let r = parseInt(h.substr(0,2),16);
+  let g = parseInt(h.substr(2,2),16);
+  let b = parseInt(h.substr(4,2),16);
+  if (percent >= 0) {
+    r = Math.round(r + (255-r) * percent);
+    g = Math.round(g + (255-g) * percent);
+    b = Math.round(b + (255-b) * percent);
+  } else {
+    r = Math.round(r * (1+percent));
+    g = Math.round(g * (1+percent));
+    b = Math.round(b * (1+percent));
+  }
+  return '#' + [r,g,b].map(x => Math.max(0,Math.min(255,x)).toString(16).padStart(2,'0')).join('');
+}
+
+/* Branding-Texte in den App-Header schreiben (und Title-Tag) */
+function applyBrandingTexts(b) {
+  if (!b) return;
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set('headerGreeting',     (b.begruessung || 'Guten Tag'));
+  set('headerKassenname',   (b.kassenname  || 'MusterKasse'));
+  set('headerSlogan',       (b.slogan      || 'Ihre Online-Geschäftsstelle'));
+  set('headerLogoLetter',   (b.logo_buchstabe || '+'));
+  if (b.kassenname) {
+    document.title = `${b.kassenname} · v${APP_VERSION}`;
+  }
+}
 
 /* ---------- Data-Layer: alle Supabase-Calls an einer Stelle ---------- */
 const api = {
@@ -813,6 +894,16 @@ const api = {
   async addFamilie({ versicherter_id, name, rolle, geburtsdatum, status }) {
     const { error } = await sb.from(T.familie).insert({ versicherter_id, name, rolle, geburtsdatum, status });
     if (error) throw error;
+  },
+
+  async loadBranding() {
+    const { data, error } = await sb.from(T.branding).select('*').eq('id','singleton').single();
+    if (error) {
+      // Tabelle evtl. nicht migriert → Default verwenden
+      console.warn('Branding konnte nicht geladen werden:', error.message);
+      return DEFAULT_BRANDING;
+    }
+    return data || DEFAULT_BRANDING;
   }
 };
 
@@ -840,13 +931,14 @@ const state = {
   familie: [],             // aus DB
   antraege: [],            // aus DB
   postfach: [],            // aus DB
+  branding: { ...DEFAULT_BRANDING },   // aus mk_branding geladen
   notifications: [
     { id: 'x1', titel: 'Rückfrage zu Ihrem Antrag', sub: 'Postfach · vor 2 Tagen', ico: 'mail' },
     { id: 'x2', titel: 'Bonuszahlung 75,00 € überwiesen', sub: 'Konto · vor 1 Tag', ico: 'piggy-bank' },
     { id: 'x3', titel: 'Vorsorgetermin in 14 Tagen fällig', sub: 'Gesundheit · heute', ico: 'calendar-check' }
   ],
   vorsorge: {
-    naechster: 'Gesundheits-Check-Up (alle 3 Jahre)',
+    naechster: 'Gesundheits-Check-Up',
     faellig: '07.05.2026'
   },
   ui: {
@@ -1066,13 +1158,11 @@ function renderHome() {
         </div>
         <div class="flex items-center gap-2">
           <div class="text-right">
-            <div class="text-[10px] uppercase tracking-wider opacity-70">MusterKasse</div>
+            <div class="text-[10px] uppercase tracking-wider opacity-70">${escapeHTML(state.branding?.kassenname_kurz || 'MusterKasse')}</div>
             <div class="text-[11px] font-semibold num-mask mt-0.5">Kasse ${u.kassennummer}</div>
           </div>
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(4px);">
-            <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5" aria-hidden="true">
-              <path d="M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z" fill="#fff"/>
-            </svg>
+          <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(4px); font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 18px; color: #fff; line-height: 1;">
+            ${escapeHTML(state.branding?.logo_buchstabe || '+')}
           </div>
         </div>
       </div>
@@ -1175,30 +1265,31 @@ function renderHome() {
 
     <!-- Vorsorge -->
     <div>
-      <div class="section-title"><h3>Gesundheit & Vorsorge</h3></div>
-      <div class="card overflow-hidden relative">
+      <div class="section-title"><h3>${escapeHTML(state.branding?.vorsorge_titel || 'Gesundheit & Vorsorge')}</h3></div>
+      <div class="card relative" style="overflow: hidden;">
         <!-- Dekorative Wellen-Illustration im Hintergrund -->
-        <svg viewBox="0 0 400 120" class="absolute right-0 top-0 h-full w-1/2 pointer-events-none" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+        <svg viewBox="0 0 320 100" class="absolute right-0 top-0 h-full pointer-events-none" style="width: 55%; opacity: 0.9;" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
           <defs>
             <linearGradient id="vorsorgeGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#4F9A6E" stop-opacity="0.18"/>
+              <stop offset="0%" stop-color="#4F9A6E" stop-opacity="0.14"/>
               <stop offset="100%" stop-color="#4F9A6E" stop-opacity="0"/>
             </linearGradient>
           </defs>
-          <path d="M0 60 Q 80 20 160 60 T 320 60 T 480 60 L 480 120 L 0 120 Z" fill="url(#vorsorgeGrad)"/>
-          <path d="M0 75 Q 100 40 200 75 T 400 75" stroke="#4F9A6E" stroke-opacity="0.25" stroke-width="1.5" fill="none"/>
-          <!-- Herz-Puls-Linie -->
-          <path d="M240 55 L 260 55 L 265 40 L 275 70 L 285 30 L 295 65 L 305 55 L 380 55" stroke="#4F9A6E" stroke-opacity="0.5" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Sanfte Hintergrund-Welle (bleibt innerhalb viewBox) -->
+          <path d="M0 55 Q 80 30 160 55 T 320 55 L 320 100 L 0 100 Z" fill="url(#vorsorgeGrad)"/>
+          <path d="M0 70 Q 80 50 160 70 T 320 70" stroke="#4F9A6E" stroke-opacity="0.22" stroke-width="1.2" fill="none"/>
+          <!-- Herz-Puls-Linie mittig-rechts, sauber innerhalb viewBox -->
+          <path d="M160 50 L 180 50 L 186 36 L 196 64 L 206 28 L 216 60 L 226 50 L 310 50" stroke="#4F9A6E" stroke-opacity="0.45" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <div class="relative p-4 flex items-center gap-3">
           <div class="w-11 h-11 rounded-xl bg-[var(--sage-100)] text-[var(--sage-600)] flex items-center justify-center flex-shrink-0">
             <i data-lucide="stethoscope" class="w-5 h-5"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="text-[13.5px] font-semibold leading-tight">${escapeHTML(state.vorsorge.naechster)}</div>
+            <div class="text-[13.5px] font-semibold leading-tight truncate">${escapeHTML(state.vorsorge.naechster)}</div>
             <div class="text-[11.5px] text-[var(--ink-500)] mt-0.5">Fällig am <span class="num-mask">${state.vorsorge.faellig}</span></div>
           </div>
-          <button class="btn btn-outline !py-2 !px-3 !text-[12px] flex-shrink-0" onclick="toast('Termin­erinnerung gesetzt','success')">
+          <button class="btn btn-outline !py-2 !px-3 !text-[12px] flex-shrink-0" onclick="toast('Erinnerung gesetzt','success')">
             <i data-lucide="bell-plus" class="w-4 h-4"></i> Erinnern
           </button>
         </div>
@@ -2055,7 +2146,7 @@ function openBonusheft() {
     <div class="px-5 pt-3 pb-5 overflow-y-auto">
       <div class="flex items-start justify-between">
         <div>
-          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">Bonusprogramm</div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-medium">${escapeHTML(state.branding?.bonus_titel || 'Bonusprogramm')}</div>
           <div class="serif text-[22px] leading-tight mt-0.5">Ihr Bonusheft</div>
         </div>
         <button onclick="closeSheet()" class="p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
@@ -2235,11 +2326,16 @@ function setupRealtime() {
   realtimeChannel = sb.channel('musterkasse-app-' + vid);
 
   // Auf Tabellen horchen, die den aktuellen Versicherten betreffen könnten
-  ['mk_antraege','mk_antrag_timeline','mk_nachrichten','mk_au_uploads','mk_familienmitglieder','mk_versicherte']
+  ['mk_antraege','mk_antrag_timeline','mk_nachrichten','mk_au_uploads','mk_familienmitglieder','mk_versicherte','mk_branding']
     .forEach(table => {
       realtimeChannel.on('postgres_changes',
         { event: '*', schema: 'public', table },
         payload => {
+          // Branding: betrifft alle Nutzer, immer sofort neu laden
+          if (table === 'mk_branding') {
+            scheduleBrandingReload();
+            return;
+          }
           // Nur neu laden, wenn es den aktuellen Versicherten betrifft (falls payload Info hat)
           const rec = payload.new || payload.old || {};
           // Timeline-Events haben keinen versicherter_id, aber antrag_id -> immer reagieren
@@ -2266,13 +2362,27 @@ function scheduleReload() {
   }, 300);
 }
 
-function showRealtimePulse() {
+let brandingReloadTimer = null;
+function scheduleBrandingReload() {
+  clearTimeout(brandingReloadTimer);
+  brandingReloadTimer = setTimeout(async () => {
+    try {
+      const b = await api.loadBranding();
+      state.branding = b;
+      applyBrandingToCSS(b);
+      showRealtimePulse('Design aktualisiert');
+      render(true);
+    } catch (e) { console.warn('Branding-Reload fehlgeschlagen:', e); }
+  }, 200);
+}
+
+function showRealtimePulse(message = '● Live-Update') {
   const existing = document.getElementById('rtPulse');
   if (existing) existing.remove();
   const el = document.createElement('div');
   el.id = 'rtPulse';
   el.style.cssText = 'position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:75;background:var(--sage-600);color:#fff;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:99px;box-shadow:0 4px 12px -4px rgba(0,0,0,.2);animation:pulse-in .2s ease-out;';
-  el.textContent = '● Live-Update';
+  el.textContent = message;
   document.querySelector('#app').appendChild(el);
   setTimeout(() => {
     el.style.transition = 'opacity .3s, transform .3s';
@@ -2344,6 +2454,17 @@ async function init() {
     if (state.versicherteList.length === 0) {
       throw new Error('Keine Versicherten gefunden. Läuft das Seed-SQL?');
     }
+
+    // Branding laden und anwenden — bevor erstes Rendering
+    try {
+      const b = await api.loadBranding();
+      state.branding = b;
+      applyBrandingToCSS(b);
+      applyBrandingTexts(b);
+    } catch (e) {
+      console.warn('Branding-Laden übersprungen:', e.message);
+    }
+
     // Max als Default, falls vorhanden, sonst der Erste
     const max = state.versicherteList.find(v => v.id === state.aktiveVersicherterId);
     const startId = max ? max.id : state.versicherteList[0].id;
